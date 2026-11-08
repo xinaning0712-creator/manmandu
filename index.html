@@ -15,7 +15,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Huninn&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
 /* layout: lobby is a station hall with a departure board; rooms are full-bleed 3D stages with a floating HUD */
 :root{
@@ -51,8 +51,9 @@ button{cursor:pointer}
 
 .notice{position:relative;background:#2f3a33;border:6px solid #5a3d2e;border-radius:10px;padding:14px 18px 14px;color:#eef0e4;font-family:var(--f-display);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
 .notice .nt{font-size:13px;letter-spacing:.2em;color:#c8d6b0;margin:0 0 6px}
-.notice .nb{font-size:19px;line-height:1.6;white-space:pre-wrap;word-break:break-word;margin:0}
+.notice .nb{font-family:"Huninn",var(--f-body);font-size:19px;line-height:1.6;white-space:pre-wrap;word-break:break-word;margin:0}
 .notice .nd{font-family:var(--f-mono);font-size:11px;color:#a8b49a;margin-top:6px}
+.roomnote span{font-family:"Huninn",var(--f-body)}
 .roomnote{box-sizing:border-box;position:absolute;top:calc(150px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%) rotate(-1deg);width:min(340px,calc(100% - 32px));background:#f3d9b8;color:#3a2a22;border-radius:4px 4px 12px 4px;padding:12px 36px 12px 14px;font-family:var(--f-display);font-size:15px;line-height:1.6;box-shadow:0 3px 0 rgba(0,0,0,.3);z-index:6}
 .roomnote b{display:block;font-size:12px;letter-spacing:.15em;color:#8a5a42;font-family:var(--f-body)}
 .roomnote button{position:absolute;right:4px;top:4px;border:0;background:transparent;color:#5a4038;font-size:18px;width:30px;height:30px;border-radius:50%}
@@ -265,7 +266,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 22:37</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 22:51</p>
     </div>
   </section>
 
