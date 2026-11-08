@@ -149,3 +149,12 @@ create policy "music_admin_delete" on storage.objects for delete to authenticate
 -- 收緊權限（只能透過上面的函式寫入）
 revoke insert, update, delete on public.station_stats, public.settings, public.admins, public.secrets from anon, authenticated;
 revoke select on public.admins, public.secrets from anon, authenticated;
+
+-- 站長公告（2026-11 新增）
+alter table public.settings add column if not exists notice text, add column if not exists notice_at timestamptz;
+create or replace function public.admin_set_notice(p_text text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'not admin'; end if;
+  update public.settings set notice = nullif(left(trim(coalesce(p_text,'')), 120), ''), notice_at = now() where id = 1;
+end $$;

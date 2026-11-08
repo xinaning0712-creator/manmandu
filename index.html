@@ -49,6 +49,13 @@ button{cursor:pointer}
 .clock{font-family:var(--f-mono);font-size:13px;color:var(--muted);text-align:right;line-height:1.5}
 .clock b{display:block;font-size:26px;color:var(--lamp);font-weight:500;letter-spacing:.06em;font-variant-numeric:tabular-nums}
 
+.notice{position:relative;background:#2f3a33;border:6px solid #5a3d2e;border-radius:10px;padding:14px 18px 14px;color:#eef0e4;font-family:var(--f-display);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.notice .nt{font-size:13px;letter-spacing:.2em;color:#c8d6b0;margin:0 0 6px}
+.notice .nb{font-size:19px;line-height:1.6;white-space:pre-wrap;word-break:break-word;margin:0}
+.notice .nd{font-family:var(--f-mono);font-size:11px;color:#a8b49a;margin-top:6px}
+.roomnote{position:absolute;top:calc(92px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%) rotate(-1deg);width:min(340px,calc(100% - 32px));background:#f3d9b8;color:#3a2a22;border-radius:4px 4px 12px 4px;padding:12px 36px 12px 14px;font-family:var(--f-display);font-size:15px;line-height:1.6;box-shadow:0 3px 0 rgba(0,0,0,.3);z-index:6}
+.roomnote b{display:block;font-size:12px;letter-spacing:.15em;color:#8a5a42;font-family:var(--f-body)}
+.roomnote button{position:absolute;right:4px;top:4px;border:0;background:transparent;color:#5a4038;font-size:18px;width:30px;height:30px;border-radius:50%}
 .board{background:#120e0c;border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .board-top{display:grid;grid-template-columns:64px 1fr 92px 88px;gap:12px;padding:10px 18px;font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;color:var(--faint);border-bottom:1px solid var(--line);text-transform:uppercase}
 .track{display:grid;grid-template-columns:64px 1fr 92px 88px;gap:12px;align-items:center;padding:16px 18px;border-bottom:1px dashed var(--line)}
@@ -195,6 +202,8 @@ input[type=range]{accent-color:var(--rose)}
         <div class="clock" aria-live="off"><b id="lobbyTime">--:--</b><span id="lobbyPhase">台北時間</span></div>
       </header>
 
+      <section class="notice" id="noticeBox" hidden aria-label="站長公告"><p class="nt">站長公告</p><p class="nb" id="noticeText"></p><p class="nd" id="noticeDate"></p></section>
+
       <div class="board" role="table" aria-label="今日月台">
         <div class="board-top" role="row"><span>月台</span><span>車廂</span><span>在讀</span><span></span></div>
         <div class="track" role="row">
@@ -246,6 +255,7 @@ input[type=range]{accent-color:var(--rose)}
       <div><div class="rname" id="rName">頁間小屋</div><div class="rcount" id="rCount">1 人正在這裡閱讀</div><div class="rcount" id="teaCount" hidden></div></div>
       <div class="phase"><span class="t" id="rTime">--:--</span><button class="pill" id="btnPhase" type="button">自動・夜晚</button><button class="pill" id="btnPower" type="button">省電模式：關</button></div>
     </div>
+    <div class="roomnote" id="roomNote" hidden><b>站長公告</b><span id="roomNoteText"></span><button type="button" id="roomNoteX" aria-label="收起公告">×</button></div>
     <div class="hud-bot">
       <div class="hint" id="rHint">點空位換座位，點別人送一杯茶</div>
       <div class="readpill" id="readPill"><span class="dotl"></span><span id="rLabel">閱讀中</span><span class="tm" id="rTimer">00:00</span><button id="btnRead" type="button">停止閱讀</button></div>
@@ -321,6 +331,10 @@ input[type=range]{accent-color:var(--rose)}
         <div style="display:flex;gap:8px"><input type="password" id="passIn" autocomplete="current-password" style="width:100%;box-sizing:border-box;background:#1e1816;border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;color:var(--paper)"><button class="btn primary" type="submit">登入</button></div>
         <div class="err" id="passErr"></div></div></form>
       <div id="adminBody" hidden style="display:grid;gap:14px">
+      <div><label class="lbl2" for="noticeIn">站長公告（最多 120 字，留空就是不顯示）</label>
+        <textarea id="noticeIn" maxlength="120" placeholder="背景音樂還在製作中，敬請期待！"></textarea>
+        <div class="btnrow" style="margin-top:8px"><button class="btn primary" id="noticeSave" type="button">發布公告</button><button class="btn" id="noticeClear" type="button">撤下公告</button></div>
+        <div class="err" id="noticeErr"></div></div>
       <div><label class="lbl2" for="goalIn">每月共讀目標（小時）</label>
         <div style="display:flex;gap:8px"><input type="number" id="goalIn" min="3" max="500" step="1" value="30"><button class="btn" id="goalSave" type="button">儲存</button></div>
         <div class="err" id="goalErr"></div></div>
@@ -1059,12 +1073,12 @@ async function enterRoom(rid){
   $('lobby').hidden=true; $('roomView').hidden=false; $('rName').textContent=ROOMS[rid].zh; S.staff=false; $('btnStaff').hidden=!S.isOwner; $('btnStaff').textContent=rid==='train'?'上工當列車長':'上工當服務生';
   S.room=rid; openRoomScene(rid);
   S.seat=freeSeat(store.get('mmd.seat.'+rid,null)); S.reading=true; S.readStart=Date.now(); S.readAcc=0; creditedMin=0; S.lookMe=false; $('btnMe').textContent='看看我'; camGoal.active=false; $('btnMe').classList.remove('on');
-  pushPresence(); syncAvatars(); renderRead(); audio.update(); keepAwake(true);
+  pushPresence(); syncAvatars(); renderRead(); audio.update(); keepAwake(true); showRoomNote();
   $('rHint').hidden=false; setTimeout(()=>{$('rHint').hidden=true;},7000);
 }
 function leaveRoom(){
   flushPartial();
-  S.staff=false; S.room=null; S.seat=null; S.reading=false; pushPresence(); keepAwake(false);
+  S.staff=false; S.room=null; S.seat=null; S.reading=false; pushPresence(); keepAwake(false); $('roomNote').hidden=true;
   $('roomView').hidden=true; $('lobby').hidden=false;
   if(R){ disposeScene(R.scene); R=null; } avatars.clear(); staffAvs.clear(); staffOv.clear(); $('labels').innerHTML=''; tagEls.clear();
   audio.update(); renderLobby();
@@ -1275,7 +1289,7 @@ async function loadNotes(){
 /* ================= admin ================= */
 function updateAdminBtn(){ $('btnAdmin').hidden=false; $('btnAdmin').textContent=S.isOwner?'站長設定':'站長登入'; }
 $('btnAdmin').onclick=()=>{
-  $('goalIn').value=S.settings.goalHours||30; $('goalErr').textContent=''; $('passErr').textContent='';
+  $('goalIn').value=S.settings.goalHours||30; $('noticeIn').value=S.settings.notice||''; $('goalErr').textContent=''; $('passErr').textContent='';
   $('adminLogin').hidden=S.isOwner; $('adminBody').hidden=!S.isOwner; renderAdminMusic(); $('vAdmin').hidden=false;
 };
 $('xAdmin').onclick=()=>$('vAdmin').hidden=true;
@@ -1319,6 +1333,27 @@ $('musicDel').onclick=async()=>{
   if(error){ $('musicMsg').textContent='移除失敗，請稍後再試。'; return; }
   sb.storage.from('music').remove([old]).catch(()=>{}); $('musicMsg').textContent='已移除背景音樂。'; loadSettings();
 };
+
+/* ================= notice ================= */
+function renderNotice(){
+  const n=S.settings.notice||''; $('noticeBox').hidden=!n; $('noticeText').textContent=n;
+  if(n&&S.settings.noticeAt){ const dt=new Date(S.settings.noticeAt); const f=new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(dt); $('noticeDate').textContent=f+' 更新'; } else $('noticeDate').textContent='';
+  showRoomNote();
+}
+function showRoomNote(){
+  const n=S.settings.notice||''; const seen=store.get('mmd.noticeSeen',''); const id=String(S.settings.noticeAt||'');
+  $('roomNoteText').textContent=n; $('roomNote').hidden=!(n&&S.room&&seen!==id);
+}
+$('roomNoteX').onclick=()=>{ store.set('mmd.noticeSeen',String(S.settings.noticeAt||'')); $('roomNote').hidden=true; };
+async function setNotice(text){
+  $('noticeErr').textContent=''; if(!sb){ $('noticeErr').textContent='目前沒有連線，存不了'; return; }
+  const {error}=await sb.rpc('admin_set_notice',{p_text:text});
+  if(error){ $('noticeErr').textContent='沒發布成功，請重新登入站長再試'; return; }
+  toast(text?'公告發布了':'公告撤下了'); loadSettings();
+}
+$('noticeSave').onclick=()=>{ const t=$('noticeIn').value.trim(); if(!t){ $('noticeErr').textContent='寫點內容再發布，或按「撤下公告」'; return; } setNotice(t); };
+$('noticeClear').onclick=()=>{ $('noticeIn').value=''; setNotice(''); };
+$('noticeIn').oninput=()=>$('noticeErr').textContent='';
 
 /* ================= ticket code ================= */
 $('ticketIn').oninput=()=>$('ticketErr').textContent='';
@@ -1365,9 +1400,11 @@ async function loadStats(){
 }
 async function loadSettings(){
   if(!sb) return;
-  const {data}=await sb.from('settings').select('goal_hours,music_path,music_name').eq('id',1).maybeSingle();
+  let {data,error}=await sb.from('settings').select('goal_hours,music_path,music_name,notice,notice_at').eq('id',1).maybeSingle();
+  if(error){ ({data}=await sb.from('settings').select('goal_hours,music_path,music_name').eq('id',1).maybeSingle()); }
   const d=data||{}; const url=d.music_path?sb.storage.from('music').getPublicUrl(d.music_path).data.publicUrl:null;
-  S.settings={goalHours:+d.goal_hours||30,musicPath:d.music_path||null,musicName:d.music_name||'',musicUrl:url};
+  S.settings={goalHours:+d.goal_hours||30,musicPath:d.music_path||null,musicName:d.music_name||'',musicUrl:url,notice:d.notice||'',noticeAt:d.notice_at||null};
+  renderNotice();
   renderLobby(); applyTier(); renderAdminMusic(); audio.music();
 }
 function onPeersLocal(){ renderLobby(); if(R) syncAvatars(); }
