@@ -257,7 +257,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 20:50</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 21:00</p>
     </div>
   </section>
 
@@ -605,9 +605,10 @@ function buildAnimal(spec){
   [-1,1].forEach(s=>{
     const l=add(new THREE.CapsuleGeometry(0.12,0.24,6,14),pants,s*0.16,0.1,0.24,a); l.rotation.x=Math.PI/2;
     const f=add(SPH(0.12,14),fur,s*0.16,0.1,0.46,a); f.scale.set(1,0.9,1.2);
-    const ag=new THREE.Group(); ag.position.set(s*0.3,0.62,0.05); a.add(ag);
-    const ar=add(new THREE.CapsuleGeometry(0.09,0.26,6,12),sw,0,-0.15,0.12,ag); ar.rotation.set(-1.05,0,s*0.35);
-    add(SPH(0.085,12),fur,-s*0.11,-0.19,0.33,ag);
+    const ag=new THREE.Group(); ag.position.set(s*0.25,0.6,0.03); ag.rotation.set(-1.2,0,0); a.add(ag);
+    add(SPH(0.1,16),sw,0,0,0,ag);
+    add(new THREE.CapsuleGeometry(0.088,0.2,6,14),sw,0,-0.16,0,ag);
+    add(SPH(0.09,14),fur,0,-0.33,0.01,ag);
     legs.push(ag);
   });
   const bk=new THREE.Group(); bk.position.set(0,0.46,0.44); bk.rotation.x=-0.85; a.add(bk);
@@ -616,7 +617,7 @@ function buildAnimal(spec){
   const fp=new THREE.Group(); fp.position.set(0,0.065,0); bk.add(fp); add(RB(0.26,0.01,0.35,0.004,2),PAGE,0.135,0,0,fp,false);
   extras.bk=bk; extras.fp=fp;
   const armR=legs[1];
-  const rc=makeCup('奶茶'); rc.scale.setScalar(0.85); rc.position.set(0.13,0.45,0.42); rc.visible=false; a.add(rc); extras.rc=rc;
+  const rc=makeCup('奶茶'); rc.scale.setScalar(0.85); rc.position.set(0,-0.36,0.09); rc.visible=false; armR.add(rc); extras.rc=rc;
   const hl=new THREE.Group(); hl.visible=false; hl.position.set(0.1,0.17,0.02); hl.rotation.set(0.25,0,-0.45); bk.add(hl); add(new THREE.CylinderGeometry(0.02,0.02,0.18,8),M(0xf0d24a,0.5),0,0.03,0,hl,false); add(new THREE.CylinderGeometry(0.02,0.012,0.04,8),M(0x3a3a3a,0.5),0,-0.08,0,hl,false);
   add(new THREE.BoxGeometry(0.2,0.004,0.03),new THREE.MeshBasicMaterial({color:0xfff07a,transparent:true,opacity:0.75}),0.14,0.072,0.05,bk,false).visible=false; extras.hl=hl;
   } else {
@@ -694,17 +695,17 @@ function animateAvatar(av,t){
       e.g.rotation.x=e.bx+sw*0.6-flick*0.25; e.g.rotation.z=e.bz+sw-e.s*flick*0.18;
       if(e.tip){ e.tip.rotation.x=e.tx+Math.sin(t*1.7+u.ph+e.s*2)*0.12+flick*0.4; e.tip.rotation.z=e.tz+Math.sin(t*1.1+u.ph)*0.08; } }); }
   if(u.staff||!u.bk) return;
-  const [armL,armR]=u.legs; armL.rotation.set(0,0,0); armR.rotation.set(0,0,0); u.bk.visible=true; u.rc.visible=false; u.rc.rotation.set(0,0,0); u.hl.visible=false;
+  const [armL,armR]=u.legs; armL.rotation.set(-1.2,0,0); armR.rotation.set(-1.2,0,0); u.bk.visible=true; u.rc.visible=false; u.rc.rotation.set(0,0,0); u.hl.visible=false;
   const emo=(u.emote&&now-u.emote.t0<3400)?u.emote:null; if(u.emote&&!emo) u.emote=null;
   let say='';
-  const sipPose=(k)=>{ u.bk.visible=false; u.rc.visible=true; armR.rotation.x=-0.2-k*0.62; armR.rotation.z=0.28*k; armR.rotation.y=-0.35*k; u.rc.position.set(0.14-0.09*k,0.45+0.27*k,0.44+0.16*k); u.rc.rotation.x=-0.35*k; u.head.rotation.x=0.05-0.1*k; };
+  const sipPose=(k)=>{ u.bk.visible=false; u.rc.visible=true; armL.rotation.x=-0.55; armR.rotation.x=-1.05-k*1.0; armR.rotation.z=-0.42*k; u.rc.rotation.set(-armR.rotation.x-0.3*k,0,-armR.rotation.z); u.head.rotation.x=0.05-0.1*k; };
   if(paused&&!emo){ const sip=Math.max(0,Math.sin(t*0.5+u.ph))**2; sipPose(sip); say='休息中'; }
   if(emo){ const e=(now-emo.t0)/1000;
-    if(emo.act==='wave'){ const k=Math.min(1,e*3)*(e>2.9?Math.max(0,1-(e-2.9)*2):1); armR.rotation.x=0.6*k; armR.rotation.y=-0.4*k; armR.rotation.z=(2.3+Math.sin(e*12)*0.28)*k; u.head.rotation.z=-0.12*k; say='嗨～'; }
-    if(emo.act==='stretch'){ const k=Math.min(1,e*1.6)*(e>2.6?Math.max(0,1-(e-2.6)*1.5):1); armL.rotation.x=armR.rotation.x=0.5*k; armL.rotation.z=-2.5*k; armR.rotation.z=2.5*k; u.bk.visible=k<0.3; u.torso.scale.y+=0.07*k; u.head.rotation.x=-0.25*k; say='伸個懶腰～'; }
+    if(emo.act==='wave'){ const k=Math.min(1,e*3)*(e>2.9?Math.max(0,1-(e-2.9)*2):1); armR.rotation.x=-1.2*(1-k)-0.2*k; armR.rotation.z=(2.5+Math.sin(e*12)*0.3)*k; u.head.rotation.z=-0.12*k; say='嗨～'; }
+    if(emo.act==='stretch'){ const k=Math.min(1,e*1.6)*(e>2.6?Math.max(0,1-(e-2.6)*1.5):1); armL.rotation.x=armR.rotation.x=-1.2*(1-k); armL.rotation.z=-2.75*k; armR.rotation.z=2.75*k; u.bk.visible=k<0.3; u.torso.scale.y+=0.07*k; u.head.rotation.x=-0.25*k; say='伸個懶腰～'; }
     if(emo.act==='doze'){ u.head.rotation.x=0.55+Math.sin(e*2.2)*0.12; u.head.rotation.z=0.15; say='Zzz…'; }
     if(emo.act==='tea'){ const k=e<1?e:e<2.4?1:Math.max(0,1-(e-2.4)); sipPose(k); say='喝口茶'; }
-    if(emo.act==='mark'){ u.hl.visible=true; const sw=Math.sin(e*4.5); u.hl.position.x=0.02+sw*0.1; armR.rotation.x=-0.38; armR.rotation.z=-0.32+sw*0.12; armR.rotation.y=sw*0.15; u.head.rotation.x=0.34; u.bk.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='BoxGeometry'&&c.material.transparent) c.visible=e>0.4; }); say='★ 畫重點'; }
+    if(emo.act==='mark'){ u.hl.visible=true; const sw=Math.sin(e*4.5); u.hl.position.x=0.02+sw*0.1; armR.rotation.x=-1.4; armR.rotation.z=-0.42+sw*0.14; u.head.rotation.x=0.34; u.bk.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='BoxGeometry'&&c.material.transparent) c.visible=e>0.4; }); say='★ 畫重點'; }
   } else if(u.bk){ u.bk.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='BoxGeometry'&&c.material.transparent) c.visible=false; }); }
   if(!paused&&!emo){ const period=8+(u.ph%5); const ph=(t+u.ph*3)%period; if(u.lastPh!=null&&ph<u.lastPh&&av.parent) audio.flip(); u.lastPh=ph; u.fp.rotation.z = ph<0.8 ? (ph/0.8)*Math.PI : Math.PI; if(ph>period-0.05) u.fp.rotation.z=0; } else u.fp.rotation.z=0;
   if(u.key){ const el=tagEls.get('e:'+u.key); if(el){ if(say){ if(el.textContent!==say) el.textContent=say; el.classList.remove('off'); } else el.classList.add('off'); } }
