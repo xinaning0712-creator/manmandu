@@ -227,7 +227,7 @@ input[type=range]{accent-color:var(--rose)}
     <div id="stage"></div>
     <div id="labels"></div>
     <div class="hud-top">
-      <div><div class="rname" id="rName">頁間小屋</div><div class="rcount" id="rCount">1 人正在這裡閱讀</div></div>
+      <div><div class="rname" id="rName">頁間小屋</div><div class="rcount" id="rCount">1 人正在這裡閱讀</div><div class="rcount" id="teaCount" hidden></div></div>
       <div class="phase"><span class="t" id="rTime">--:--</span><button class="pill" id="btnPhase" type="button">自動・夜晚</button></div>
     </div>
     <div class="hud-bot">
@@ -685,7 +685,7 @@ function buildCottage(){
     add(RB(1.15,0.9,0.3,0.14),on,0,0.85,-0.38,g); [-1,1].forEach(s=>add(RB(0.24,0.62,1.0,0.11),on,s*0.5,0.5,0.02,g));
     [[-0.45,-0.38],[0.45,-0.38],[-0.45,0.42],[0.45,0.42]].forEach(([a,b])=>add(new THREE.CylinderGeometry(0.045,0.035,0.12,8),legM,a,0.06,b,g,false));
     const hit=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.6,1.1),new THREE.MeshBasicMaterial({visible:false})); hit.position.y=0.8; hit.userData.seat=i; g.add(hit);
-    R.seats.push({x,z,ry,y:0.6,table:tIdx[i],glow:seatGlow(scene,x,z),hit,parent:scene}); });
+    R.seats.push({x,z,ry,y:0.6,table:tIdx[i],cup:new THREE.Vector3(tx+dx*0.36,0.775,tz+dz*0.36),glow:seatGlow(scene,x,z),hit,parent:scene}); });
   R.applyPhase=(p)=>{
     const P={morning:{amb:0.62,hemi:0.5,sun:0.85,sunC:0xfff0d6,glass:0xbcd6ec,ge:0x6a88a8,beam:0.16,lamp:0,bg:0x3a302b,stars:false},
              afternoon:{amb:0.55,hemi:0.45,sun:0.75,sunC:0xffe0b8,glass:0xa8c4e0,ge:0x5a7898,beam:0.12,lamp:0,bg:0x362c27,stars:false},
@@ -759,7 +759,7 @@ function buildTrain(){
     const pL=new THREE.PointLight(0xffc28a,0,4.5,2); pL.position.set(cx,1.6,-1.4); if(bi===1&&!LOW){ pL.castShadow=true; pL.shadow.mapSize.set(SHMAP,SHMAP); pL.shadow.bias=-0.003; } car.add(pL);
     R.tables.push({L:pL,shade,ph:Math.random()*6,on:0,cur:0});
     [-1,1].forEach(s=>{ const x=cx+s*0.95, z=-1.0; const hit=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.8,1.6),new THREE.MeshBasicMaterial({visible:false})); hit.position.set(x,0.9,-1.1); hit.userData.seat=R.seats.length; car.add(hit);
-      R.seats.push({x,z,ry:s>0?-Math.PI/2:Math.PI/2,y:0.63,table:bi,glow:seatGlow(car,x,-0.95),hit,parent:car}); });
+      R.seats.push({x,z,ry:s>0?-Math.PI/2:Math.PI/2,y:0.63,table:bi,cup:new THREE.Vector3(cx+s*0.24,0.935,-1.25),glow:seatGlow(car,x,-0.95),hit,parent:car}); });
   });
   const ceilL=[]; [-3,0,3].forEach(x=>{ const l=new THREE.PointLight(0xffd8a8,0,6,2); l.position.set(x,3.4,0.3); car.add(l); ceilL.push(l); });
   R.applyPhase=(p)=>{
@@ -786,7 +786,8 @@ function disposeScene(sc){ sc.traverse(o=>{ if(o.geometry) o.geometry.dispose();
 function openRoomScene(rid){
   if(R){ disposeScene(R.scene); }
   avatars.clear(); $('labels').innerHTML=''; tagEls.clear();
-  R = rid==='train'?buildTrain():buildCottage(); R.id=rid; FS=R.fs;
+  flights.length=0; landed.clear();
+  R = rid==='train'?buildTrain():buildCottage(); R.id=rid; FS=R.fs; renderTeaCount();
   if(renderPass) renderPass.scene=R.scene;
   camGoal.target.copy(R.cam.target); camGoal.zoom=1; ctr.target.copy(R.cam.target); cam.zoom=1; cam.position.set(12,10.5,12).add(R.cam.target).sub(new THREE.Vector3(0,1.1,0)); ctr.update();
   resize(); applyPhaseNow(); applyTier();
@@ -859,6 +860,7 @@ function loop(){
     if(tb.fl){ tb.fl.visible=tb.cur>0.05; tb.fl.scale.y=1.7+Math.sin(t*12+tb.ph)*0.18; } if(tb.shade) tb.shade.emissiveIntensity=0.1+tb.cur*0.6; });
   R.seats.forEach(s=>{ const want=s.taken?(avatars.get(s.taken)?.userData.paused?0.08:0.2):0; s.glow.material.opacity+=(want-s.glow.material.opacity)*0.06; });
   for(const av of avatars.values()) animateAvatar(av,t);
+  tickTea(t);
   if(camGoal.active){ ctr.target.lerp(camGoal.target,0.08); cam.zoom+= (camGoal.zoom-cam.zoom)*0.08; cam.updateProjectionMatrix(); }
   ctr.update();
   if(composer){ if(renderPass.scene!==R.scene) renderPass.scene=R.scene; try{ composer.render(); }catch(e){ composer=null; renderer.render(R.scene,cam); } }
@@ -910,14 +912,62 @@ let lastTeaAt=0;
 function sendTea(uid,nick,key){
   if(Date.now()-lastTeaAt<4000){ toast('慢慢來，茶還在泡'); return; } lastTeaAt=Date.now();
   const data={to:uid||key,from:S.uid,nick:S.profile?.nick||'旅人',kind:teaKind(),room:R.id};
-  const av=avatars.get(key); if(av) av.userData.teaUntil=performance.now()+7000;
+  flyTea(S.uid,data.to,data.kind);
   toast('送了一杯'+data.kind+'給 '+(nick||'夥伴'));
   if(chan&&chanReady) chan.send({type:'broadcast',event:'tea',payload:data}).catch(()=>{});
 }
 function onTea(msg){
   if(msg.sameTab) return; const d=msg.data||{}; if(typeof d!=='object') return;
-  const toKey=String(d.to||''); for(const [k,av] of avatars){ if(k===toKey||av.userData.hit.userData.uid===toKey){ av.userData.teaUntil=performance.now()+7000; } }
-  if(toKey===S.uid || (!S.uid && msg.isMe)) toast(String(d.nick||'有人').slice(0,12)+' 送你一杯'+(d.kind==='熱可可'?'熱可可':'奶茶'));
+  const toKey=String(d.to||''), fromKey=String(d.from||''); const kind=d.kind==='熱可可'?'熱可可':'奶茶';
+  if(R && d.room===R.id) flyTea(fromKey,toKey,kind);
+  if(toKey===S.uid){
+    const k='mmd.tea.'+taipeiDate(); store.set(k,(store.get(k,0)||0)+1); renderTeaCount();
+    setTimeout(()=>{ ding(); toast(String(d.nick||'有人').slice(0,12)+' 送你一杯'+kind); }, R&&d.room===R.id?1300:0);
+  }
+}
+function taipeiDate(){ const t=taipeiNow(); return t.y+'-'+fmt2(t.m)+'-'+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Taipei',day:'2-digit'}).format(new Date()); }
+function renderTeaCount(){ const n=store.get('mmd.tea.'+taipeiDate(),0)||0; const el=$('teaCount'); el.hidden=!n; el.textContent='今天收到 '+n+' 杯茶'; }
+
+/* tea cups: fly + stay on table */
+const flights=[]; const landed=new Map();
+function findAvatar(key){ if(!key) return null; for(const [k,av] of avatars){ if(k===key||av.userData.hit.userData.uid===key) return av; } return null; }
+function makeCup(kind){
+  const g=new THREE.Group(); const cer=M(0xf5ead8,0.4);
+  add(new THREE.CylinderGeometry(0.075,0.06,0.11,16),cer,0,0.055,0,g,false);
+  add(new THREE.CylinderGeometry(0.067,0.067,0.01,16),M(kind==='熱可可'?0x6a3e28:0xc49a72,0.3),0,0.106,0,g,false);
+  const h=add(new THREE.TorusGeometry(0.035,0.01,6,12),cer,0.08,0.055,0,g,false); h.rotation.y=0;
+  add(new THREE.CylinderGeometry(0.11,0.11,0.012,20),cer,0,0.006,0,g,false);
+  const steam=[]; for(let i=0;i<3;i++){ const s=add(SPH(0.022,8),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.45,depthWrite:false}),0,0.13,0,g,false); s.userData.o=i/3; steam.push(s); }
+  g.userData.steam=steam; return g;
+}
+function flyTea(fromKey,toKey,kind){
+  if(!R) return; const to=findAvatar(toKey); if(!to) return;
+  const seat=R.seats[to.userData.seat]; if(!seat) return;
+  const parent=R.avatarParent; const from=findAvatar(fromKey);
+  const start=from?from.position.clone().add(new THREE.Vector3(0,1.9,0)):seat.cup.clone().add(new THREE.Vector3(0,3,0));
+  const key=[...avatars.entries()].find(([,a])=>a===to)[0];
+  const list=landed.get(key)||[]; const idx=Math.min(list.length,2);
+  const side=new THREE.Vector3(Math.cos(seat.ry),0,-Math.sin(seat.ry)).multiplyScalar((idx-1)*0.2);
+  const end=seat.cup.clone().add(side);
+  const cup=makeCup(kind); cup.position.copy(start); parent.add(cup);
+  flights.push({cup,start,end,t0:performance.now(),dur:1300,key});
+}
+function tickTea(t){
+  const now=performance.now();
+  for(let i=flights.length-1;i>=0;i--){ const f=flights[i]; const k=Math.min(1,(now-f.t0)/f.dur); const e=k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    f.cup.position.lerpVectors(f.start,f.end,e); f.cup.position.y+=Math.sin(k*Math.PI)*1.1; f.cup.rotation.y=k*Math.PI*2;
+    if(k>=1){ flights.splice(i,1); f.cup.rotation.y=0; const list=landed.get(f.key)||[]; list.push({cup:f.cup,until:now+20*60*1000}); while(list.length>3){ const o=list.shift(); o.cup.parent?.remove(o.cup); } landed.set(f.key,list); } }
+  for(const [key,list] of landed){ if(!avatars.has(key)){ list.forEach(o=>o.cup.parent?.remove(o.cup)); landed.delete(key); continue; }
+    for(let j=list.length-1;j>=0;j--){ const o=list[j]; if(now>o.until){ o.cup.parent?.remove(o.cup); list.splice(j,1); continue; }
+      o.cup.userData.steam.forEach(s=>{ const k=(t*0.5+s.userData.o)%1; s.position.set(Math.sin(k*6)*0.025,0.13+k*0.3,0); s.material.opacity=0.45*(1-k); s.scale.setScalar(0.7+k); }); } }
+  for(const f of flights) f.cup.userData.steam.forEach(s=>s.material.opacity=0);
+}
+let dingCtx=null;
+function ding(){
+  try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; dingCtx=dingCtx||new AC(); if(dingCtx.state==='suspended') dingCtx.resume();
+    const t=dingCtx.currentTime; [[1318.5,0],[1975.5,0.12]].forEach(([f,d])=>{ const o=dingCtx.createOscillator(), g=dingCtx.createGain(); o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t+d); g.gain.exponentialRampToValueAtTime(0.12,t+d+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+d+1.4); o.connect(g).connect(dingCtx.destination); o.start(t+d); o.stop(t+d+1.5); });
+  }catch(e){}
 }
 
 /* look at me */
