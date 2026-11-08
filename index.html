@@ -330,6 +330,7 @@ window.__booted = true;
 const $ = id => document.getElementById(id);
 const store = { get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v);}catch(e){return d;} }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
 const LOW = (matchMedia('(pointer:coarse)').matches && Math.min(screen.width,screen.height) < 820);
+let HQ = !LOW;
 const fmt2 = n => String(n).padStart(2,'0');
 function taipeiNow(){
   const p = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
@@ -493,12 +494,12 @@ const TEX={};
 const tex = (k,f) => TEX[k]||(TEX[k]=f());
 const stripeTex = (a,b) => tex('st'+a+b,()=>cvTex(64,(g,n)=>{for(let i=0;i<8;i++){g.fillStyle=i%2?b:a;g.fillRect(0,i*8,n,8);}}));
 const M=(c,r=0.85,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:r,...o});
-const FAB=(c,sh=0xffe8d8,o={})=>LOW?new THREE.MeshStandardMaterial({color:c,roughness:1,...o}):new THREE.MeshPhysicalMaterial({color:c,roughness:1,sheen:1,sheenRoughness:0.55,sheenColor:new THREE.Color(sh),bumpMap:NOISE,bumpScale:0.015,...o});
+const FAB=(c,sh=0xffe8d8,o={})=>!HQ?new THREE.MeshStandardMaterial({color:c,roughness:1,...o}):new THREE.MeshPhysicalMaterial({color:c,roughness:1,sheen:1,sheenRoughness:0.55,sheenColor:new THREE.Color(sh),bumpMap:NOISE,bumpScale:0.015,...o});
 const BASIC=c=>new THREE.MeshBasicMaterial({color:c});
 const RB=(w,h,d,r=0.12,s=4)=>new RoundedBoxGeometry(w,h,d,s,r);
 const SPH=(r,s=20)=>new THREE.SphereGeometry(r,s,Math.max(10,(s*0.7)|0));
-function add(geo,mat,x,y,z,parent,cast=true){ const o=new THREE.Mesh(geo,mat); o.position.set(x,y,z); o.castShadow=cast&&!LOW; o.receiveShadow=true; parent.add(o); return o; }
-const SHMAP = LOW?512:1024;
+function add(geo,mat,x,y,z,parent,cast=true){ const o=new THREE.Mesh(geo,mat); o.position.set(x,y,z); o.castShadow=cast&&HQ; o.receiveShadow=true; parent.add(o); return o; }
+let SHMAP = 1024;
 
 /* ---------- avatar ---------- */
 const DARK=M(0x2a1a16,0.4), BLUSH=M(0xe79a94,1,{transparent:true,opacity:0.7}), PAGE=M(0xf4ead8,0.9);
@@ -642,7 +643,7 @@ function buildCottage(){
     add(new THREE.CylinderGeometry(0.28,0.32,0.06,24),brass,0,0.03,0,g); add(new THREE.CylinderGeometry(0.025,0.025,2.8,10),brass,0,1.45,0,g);
     const shade=FAB(0xf1dcc0,0xffe8c8,{emissive:new THREE.Color(0x8a5a2a),emissiveIntensity:0.7,side:THREE.DoubleSide}); add(new THREE.CylinderGeometry(0.28,0.42,0.5,28,1,true),shade,0,2.95,0,g,false);
     const bulb=add(SPH(0.08,12),BASIC(0xffe2b0),0,2.85,0,g,false);
-    const L=new THREE.PointLight(0xffc48a,0.95,7,2); L.position.set(x,2.7,z); if(shadow&&!LOW){ L.castShadow=true; L.shadow.mapSize.set(SHMAP,SHMAP); L.shadow.bias=-0.003; } scene.add(L); lamps.push({L,shade,bulb}); }
+    const L=new THREE.PointLight(0xffc48a,0.95,7,2); L.position.set(x,2.7,z); if(shadow&&HQ){ L.castShadow=true; L.shadow.mapSize.set(SHMAP,SHMAP); L.shadow.bias=-0.003; } scene.add(L); lamps.push({L,shade,bulb}); }
   lamp(-3.4,-3.3,true); lamp(3.4,-3.5,false);
   const win=new THREE.Group(); win.position.set(2.0,2.7,-4.16); scene.add(win);
   add(RB(1.9,2.2,0.12,0.04),trim,0,0,0,win); const glassM=M(0x27304a,0.3,{emissive:new THREE.Color(0x141a2e)}); add(new THREE.BoxGeometry(1.65,1.95,0.04),glassM,0,0,0.05,win,false);
@@ -675,7 +676,7 @@ function buildCottage(){
     const tp=add(SPH(0.14,18),cer,0.22,0.86,0.12,g); tp.scale.y=0.85; add(SPH(0.04,10),cer,0.22,0.98,0.12,g);
     add(new THREE.CylinderGeometry(0.015,0.03,0.12,8),cer,0.36,0.9,0.12,g).rotation.z=-1.1; add(new THREE.TorusGeometry(0.06,0.015,6,12),cer,0.09,0.87,0.12,g).rotation.y=Math.PI/2;
     add(new THREE.CylinderGeometry(0.055,0.045,0.08,14),M(0xe9b7b3,0.35),-0.15,0.81,0.25,g);
-    const L=new THREE.PointLight(0xffa860,0,4.5,2); L.position.set(x-0.05,1.15,z); if(sh&&!LOW){ L.castShadow=true; L.shadow.mapSize.set(SHMAP,SHMAP); L.shadow.bias=-0.003; } scene.add(L);
+    const L=new THREE.PointLight(0xffa860,0,4.5,2); L.position.set(x-0.05,1.15,z); if(sh&&HQ){ L.castShadow=true; L.shadow.mapSize.set(SHMAP,SHMAP); L.shadow.bias=-0.003; } scene.add(L);
     R.tables.push({L,fl,ph:Math.random()*6,on:0,cur:0}); });
   const offs=[[0,-1],[-1,0],[0,-1],[1,0],[-1,0],[1,0]], tIdx=[0,0,1,1,2,2];
   const legM=M(0x2a1a14,0.5);
@@ -757,7 +758,7 @@ function buildTrain(){
     const shade=FAB(0xf3d9a8,0xffe8c8,{emissive:new THREE.Color(0x7a5a30),emissiveIntensity:0.6,side:THREE.DoubleSide}); add(new THREE.ConeGeometry(0.17,0.2,24,1,true),shade,cx,1.33,-1.65,car,false);
     add(new THREE.CylinderGeometry(0.075,0.06,0.11,14),M(0xf5ead8,0.4),cx+0.22,1.0,-1.2,car); add(new THREE.CylinderGeometry(0.065,0.065,0.01,14),M(0x6a3e28,0.4),cx+0.22,1.055,-1.2,car,false);
     add(new THREE.BoxGeometry(0.34,0.03,0.24),M(BOOKC[bi],0.7),cx-0.22,0.95,-1.45,car).rotation.y=0.3;
-    const pL=new THREE.PointLight(0xffc28a,0,4.5,2); pL.position.set(cx,1.6,-1.4); if(bi===1&&!LOW){ pL.castShadow=true; pL.shadow.mapSize.set(SHMAP,SHMAP); pL.shadow.bias=-0.003; } car.add(pL);
+    const pL=new THREE.PointLight(0xffc28a,0,4.5,2); pL.position.set(cx,1.6,-1.4); if(bi===1&&HQ){ pL.castShadow=true; pL.shadow.mapSize.set(SHMAP,SHMAP); pL.shadow.bias=-0.003; } car.add(pL);
     R.tables.push({L:pL,shade,ph:Math.random()*6,on:0,cur:0});
     [-1,1].forEach(s=>{ const x=cx+s*0.95, z=-1.0; const hit=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.8,1.6),new THREE.MeshBasicMaterial({visible:false})); hit.position.set(x,0.9,-1.1); hit.userData.seat=R.seats.length; car.add(hit);
       R.seats.push({x,z,ry:s>0?-Math.PI/2:Math.PI/2,y:0.63,table:bi,cup:new THREE.Vector3(cx+s*0.24,0.935,-1.25),glow:seatGlow(car,x,-0.95),hit,parent:car}); });
@@ -788,6 +789,9 @@ function openRoomScene(rid){
   if(R){ disposeScene(R.scene); }
   avatars.clear(); $('labels').innerHTML=''; tagEls.clear();
   flights.length=0; landed.clear();
+  HQ = !LOW || rid==='cottage'; leafMs=null;
+  renderer.shadowMap.enabled=HQ; renderer.setPixelRatio(Math.min(devicePixelRatio, rid==='cottage'?2:(LOW?1:1.6)));
+  if(composer) composer.setPixelRatio(renderer.getPixelRatio());
   R = rid==='train'?buildTrain():buildCottage(); R.id=rid; FS=R.fs; renderTeaCount();
   if(renderPass) renderPass.scene=R.scene;
   camGoal.target.copy(R.cam.target); camGoal.zoom=1; ctr.target.copy(R.cam.target); cam.zoom=1; cam.position.set(12,10.5,12).add(R.cam.target).sub(new THREE.Vector3(0,1.1,0)); ctr.update();
@@ -861,7 +865,8 @@ function loop(){
   requestAnimationFrame(loop);
   if(!R || $('roomView').hidden || document.hidden) return;
   const nowMs=performance.now(); const idle=nowMs-lastInput>20000;
-  const fps=S.power?6:idle?(LOW?10:20):(LOW?30:60);
+  const cot=LOW&&R.id==='cottage';
+  const fps=S.power?(cot?4:6):idle?(cot?5:LOW?10:20):(cot?20:LOW?30:60);
   if(nowMs-lastFrame<1000/fps-2) return; lastFrame=nowMs;
   const t=clock.getElapsedTime();
   R.tick(t);
