@@ -111,6 +111,7 @@ button{cursor:pointer}
 .rcount{font-size:13px;color:var(--muted)}
 .phase{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .phase .t{font-family:var(--f-mono);font-size:18px;color:var(--lamp);font-variant-numeric:tabular-nums}
+.pill.on{border-color:var(--moss);color:#c8d6b0}
 .pill{border:1px solid var(--line-2);background:rgba(26,21,19,.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:999px;padding:5px 12px;font-size:13px}
 .hud-bot{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));display:grid;gap:10px;justify-items:center;pointer-events:none}
 .hud-bot>*{pointer-events:auto}
@@ -228,7 +229,7 @@ input[type=range]{accent-color:var(--rose)}
     <div id="labels"></div>
     <div class="hud-top">
       <div><div class="rname" id="rName">頁間小屋</div><div class="rcount" id="rCount">1 人正在這裡閱讀</div><div class="rcount" id="teaCount" hidden></div></div>
-      <div class="phase"><span class="t" id="rTime">--:--</span><button class="pill" id="btnPhase" type="button">自動・夜晚</button></div>
+      <div class="phase"><span class="t" id="rTime">--:--</span><button class="pill" id="btnPhase" type="button">自動・夜晚</button><button class="pill" id="btnPower" type="button">省電模式：關</button></div>
     </div>
     <div class="hud-bot">
       <div class="hint" id="rHint">點空位換座位，點別人送一杯茶</div>
@@ -446,10 +447,10 @@ function renderMyCard(){
 
 /* ================= 3D engine ================= */
 const stage=$('stage');
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio, LOW?1.25:1.6));
+const renderer=new THREE.WebGLRenderer({antialias:!LOW,powerPreference:LOW?'low-power':'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio, LOW?1:1.6));
 renderer.useLegacyLights=true;
-renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled=!LOW; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.12;
 renderer.setClearColor(0x1d1816);
 stage.appendChild(renderer.domElement);
@@ -492,7 +493,7 @@ const TEX={};
 const tex = (k,f) => TEX[k]||(TEX[k]=f());
 const stripeTex = (a,b) => tex('st'+a+b,()=>cvTex(64,(g,n)=>{for(let i=0;i<8;i++){g.fillStyle=i%2?b:a;g.fillRect(0,i*8,n,8);}}));
 const M=(c,r=0.85,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:r,...o});
-const FAB=(c,sh=0xffe8d8,o={})=>new THREE.MeshPhysicalMaterial({color:c,roughness:1,sheen:1,sheenRoughness:0.55,sheenColor:new THREE.Color(sh),bumpMap:NOISE,bumpScale:0.015,...o});
+const FAB=(c,sh=0xffe8d8,o={})=>LOW?new THREE.MeshStandardMaterial({color:c,roughness:1,...o}):new THREE.MeshPhysicalMaterial({color:c,roughness:1,sheen:1,sheenRoughness:0.55,sheenColor:new THREE.Color(sh),bumpMap:NOISE,bumpScale:0.015,...o});
 const BASIC=c=>new THREE.MeshBasicMaterial({color:c});
 const RB=(w,h,d,r=0.12,s=4)=>new RoundedBoxGeometry(w,h,d,s,r);
 const SPH=(r,s=20)=>new THREE.SphereGeometry(r,s,Math.max(10,(s*0.7)|0));
@@ -849,10 +850,19 @@ renderer.domElement.addEventListener('pointerup',e=>{
 });
 
 /* main loop */
+let lastFrame=0, lastInput=performance.now();
+['pointerdown','pointermove','wheel','keydown','touchstart'].forEach(ev=>addEventListener(ev,()=>{ lastInput=performance.now(); },{passive:true}));
+S.power=store.get('mmd.power',false);
+function renderPower(){ $('btnPower').textContent='省電模式：'+(S.power?'開':'關'); $('btnPower').classList.toggle('on',S.power); }
+$('btnPower').onclick=()=>{ S.power=!S.power; store.set('mmd.power',S.power); renderPower(); toast(S.power?'省電模式開啟，畫面會變慢但手機比較不燙':'省電模式關閉'); };
+renderPower();
 const clock=new THREE.Clock(); const tv=new THREE.Vector3();
 function loop(){
   requestAnimationFrame(loop);
-  if(!R || $('roomView').hidden) return;
+  if(!R || $('roomView').hidden || document.hidden) return;
+  const nowMs=performance.now(); const idle=nowMs-lastInput>20000;
+  const fps=S.power?6:idle?(LOW?10:20):(LOW?30:60);
+  if(nowMs-lastFrame<1000/fps-2) return; lastFrame=nowMs;
   const t=clock.getElapsedTime();
   R.tick(t);
   const base=R.candleBase??1;
