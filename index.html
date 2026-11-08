@@ -158,6 +158,12 @@ button{cursor:pointer}
 .logcard .ops{display:flex;gap:6px;margin-top:4px}
 .logcard .ops button{border:1px solid var(--line-2);background:transparent;border-radius:999px;padding:3px 12px;font-size:12px}
 .seg button.on{background:var(--rose);color:#3a1f1c;border-color:var(--rose)}
+.todo{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--panel-2);min-width:0}
+.todo .ck{width:24px;height:24px;border-radius:50%;border:2px solid var(--rose);background:transparent;flex:none;padding:0}
+.todo.done .ck{background:var(--rose)}
+.todo .tx{flex:1;min-width:0;word-break:break-word}
+.todo.done .tx{color:var(--faint);text-decoration:line-through}
+.todo .rm{border:0;background:transparent;color:var(--faint);font-size:18px;width:30px;height:30px;border-radius:50%}
 .hint{font-size:12px;color:var(--muted);background:rgba(26,21,19,.7);border-radius:999px;padding:3px 12px}
 
 /* ---------- sheets / modals ---------- */
@@ -208,7 +214,7 @@ input[type=range]{accent-color:var(--rose)}
       <header class="hall-head">
         <div class="brand">
           <h1>慢慢讀車站</h1>
-          <p>帶一本書，挑一個車廂坐下。讀多少都好。</p>
+          <p>帶上今天要做的事，挑一個車廂坐下。慢慢來就好。</p>
         </div>
         <div class="clock" aria-live="off"><b id="lobbyTime">--:--</b><span id="lobbyPhase">台北時間</span></div>
       </header>
@@ -216,7 +222,7 @@ input[type=range]{accent-color:var(--rose)}
       <section class="notice" id="noticeBox" hidden aria-label="站長公告"><p class="nt">站長公告</p><p class="nb" id="noticeText"></p><p class="nd" id="noticeDate"></p></section>
 
       <div class="board" role="table" aria-label="今日月台">
-        <div class="board-top" role="row"><span>月台</span><span>車廂</span><span>在讀</span><span></span></div>
+        <div class="board-top" role="row"><span>月台</span><span>車廂</span><span>在場</span><span></span></div>
         <div class="track" role="row">
           <span class="no">01</span>
           <span class="nm">頁間小屋<small>暖爐、立燈與三張燭光小桌</small></span>
@@ -233,8 +239,8 @@ input[type=range]{accent-color:var(--rose)}
 
       <div class="duo">
         <section class="card" aria-labelledby="gTitle">
-          <h2 id="gTitle">本月共讀里程</h2>
-          <p class="sub">大家的閱讀時間加在一起，每到一站就幫兩間房間換上新裝飾。</p>
+          <h2 id="gTitle">本月專心里程</h2>
+          <p class="sub">大家專心的時間加在一起，每到一站就幫兩間房間換上新裝飾。</p>
           <div class="big" id="gHours">0<small>/ 30 小時</small></div>
           <div class="rail" aria-hidden="true">
             <div class="bed"></div><div class="done" id="gDone" style="width:0"></div>
@@ -251,6 +257,7 @@ input[type=range]{accent-color:var(--rose)}
           <div id="myCard"></div>
           <div class="btnrow">
             <button class="btn" id="btnEdit" type="button">修改角色</button>
+            <button class="btn" id="btnTodo" type="button">待辦清單</button>
             <button class="btn" id="btnLog" type="button">閱讀紀錄本</button>
             <button class="btn" id="btnNotesL" type="button">紙條牆</button>
             <button class="btn" id="btnAdmin" type="button">站長登入</button>
@@ -258,7 +265,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 22:30</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 22:55</p>
     </div>
   </section>
 
@@ -266,16 +273,17 @@ input[type=range]{accent-color:var(--rose)}
     <div id="stage"></div>
     <div id="labels"></div>
     <div class="hud-top">
-      <div><div class="rname" id="rName">頁間小屋</div><div class="rcount" id="rCount">1 人正在這裡閱讀</div><div class="rcount" id="teaCount" hidden></div></div>
+      <div><div class="rname" id="rName">頁間小屋</div><div class="rcount" id="rCount">1 人正在這裡專心</div><button class="pill" id="actPill" type="button" style="margin-top:6px">今天做什麼？</button><div class="rcount" id="teaCount" hidden></div></div>
       <div class="phase"><span class="t" id="rTime">--:--</span><button class="pill" id="btnPhase" type="button">自動・夜晚</button><button class="pill" id="btnPower" type="button">省電模式：關</button></div>
     </div>
     <div class="roomnote" id="roomNote" hidden><b>站長公告</b><span id="roomNoteText"></span><button type="button" id="roomNoteX" aria-label="收起公告">×</button></div>
     <div class="hud-bot">
       <div class="hint" id="rHint">點空位換座位，點別人送一杯茶</div>
-      <div class="readpill" id="readPill"><span class="dotl"></span><span id="rLabel">閱讀中</span><span class="tm" id="rTimer">00:00</span><button id="btnRead" type="button">休息一下</button></div>
+      <div class="readpill" id="readPill"><span class="dotl"></span><span id="rLabel">專心中</span><span class="tm" id="rTimer">00:00</span><button id="btnRead" type="button">休息一下</button></div>
       <div class="tools">
         <button class="tool" id="btnTea" type="button">送茶</button>
         <button class="tool" id="btnEmote" type="button">動作</button>
+        <button class="tool" id="btnTodoR" type="button">待辦</button>
         <button class="tool" id="btnLogR" type="button">紀錄本</button>
         <button class="tool" id="btnNotes" type="button">紙條牆</button>
         <button class="tool" id="btnMe" type="button">看看我</button>
@@ -316,6 +324,29 @@ input[type=range]{accent-color:var(--rose)}
         <div class="err" id="noteErr"></div>
       </form>
       <div class="notes" id="noteList"></div>
+    </div>
+  </div>
+
+  <div class="veil" id="vAct" hidden>
+    <div class="sheet">
+      <button class="x" type="button" id="xAct" aria-label="關閉">×</button>
+      <h3>今天要做什麼？</h3>
+      <p class="note-line" style="margin:-6px 0 0">只有你自己看得到，同事只會看到你在「專心中」。</p>
+      <div class="pick" id="actPick"></div>
+      <div id="actOtherBox" hidden><label class="lbl2" for="actOther">自己寫（最多 10 個字）</label><input type="text" id="actOther" maxlength="10" placeholder="整理教室照片" autocomplete="off"><div class="err" id="actErr"></div></div>
+      <button class="btn primary" id="actGo" type="button">開始專心</button>
+    </div>
+  </div>
+
+  <div class="veil" id="vTodo" hidden>
+    <div class="sheet">
+      <button class="x" type="button" id="xTodo" aria-label="關閉">×</button>
+      <h3>我的待辦清單</h3>
+      <p class="note-line" style="margin:-6px 0 0">只有你自己看得到。完成的件數會放進房間的小籃子裡。</p>
+      <form id="fTodo" novalidate style="display:flex;gap:8px"><input type="text" id="todoIn" maxlength="60" placeholder="改完五年級作文" autocomplete="off"><button class="btn primary" type="submit">加入</button></form>
+      <div class="err" id="todoErr"></div>
+      <div id="todoList" style="display:grid;gap:8px"></div>
+      <details id="todoDoneBox"><summary style="cursor:pointer;color:var(--muted);font-size:14px">已完成</summary><div id="todoDone" style="display:grid;gap:8px;margin-top:8px"></div></details>
     </div>
   </div>
 
@@ -510,7 +541,7 @@ function renderLobby(){
   const st=$('gStops'); st.innerHTML='';
   names.forEach((nm,i)=>{ const d=document.createElement('div'); d.className='stopcard'+(tier>i?' on':''); const b=document.createElement('b'); b.textContent=Math.round(G*(i+1)/3)+' 小時'; d.append(b, (tier>i?'已解鎖・':'解鎖・')+nm); st.append(d); });
   document.querySelectorAll('.rail .stop').forEach((el,i)=>el.classList.toggle('on',tier>i));
-  const rc=S.readCounts||{books:0,papers:0}; $('gReads').textContent=(rc.papers||rc.books)?('本月大家一共登記了 '+rc.papers+' 篇文獻、'+rc.books+' 本書'):'讀完一篇文獻或一本書，記得到「閱讀紀錄本」登記，房間的文件架會跟著變高。';
+  const rc=S.readCounts||{books:0,papers:0}; const td=S.todoDone||0; $('gReads').textContent=(rc.papers||rc.books||td)?('本月大家一共讀了 '+rc.papers+' 篇文獻、'+rc.books+' 本書，完成 '+td+' 件待辦'):'讀完文獻或書可以登記在「閱讀紀錄本」，完成的事可以在「待辦清單」打勾，房間的文件架和小籃子會跟著變滿。';
   renderMyCard();
 }
 function renderMyCard(){
@@ -534,6 +565,7 @@ function renderMyCard(){
   const chips=document.createElement('div'); chips.className='chips';
   ACCS.forEach(a=>{ const ch=document.createElement('span'); const on=tot>=a.h; ch.className='chip'+(on?' on':''); ch.textContent=(on?'已解鎖 ':a.h+' 小時解鎖 ')+a.zh; chips.append(ch); });
   t.append(who,r1,chips);
+  const am=store.get('mmd.actmin.'+ym(),{})||{}; const ak=Object.keys(am).filter(k=>am[k]>0).sort((a,b)=>am[b]-am[a]); if(ak.length){ const r=document.createElement('div'); r.className='chips'; ak.slice(0,6).forEach(k=>{ const ch=document.createElement('span'); ch.className='chip'; ch.textContent=k+' '+(am[k]/60).toFixed(1)+' 小時'; r.append(ch); }); t.append(r); }
   const stamps=(store.get('mmd.stamps',[])||[]).length; if(stamps){ const ch=document.createElement('span'); ch.className='chip on'; ch.textContent='列車長紀念章 ×'+stamps; chips.append(ch); }
   if(pr.code){ const cr=document.createElement('div'); cr.className='row'; const l=document.createElement('span'); l.className='lbl'; l.textContent='票卡碼（換手機時用來找回紀錄）'; const v=document.createElement('b'); v.style.fontFamily='var(--f-mono)'; v.style.letterSpacing='.2em'; v.textContent=pr.code; cr.append(l,v); t.append(cr); }
   c.append(t);
@@ -555,7 +587,8 @@ ctr.enablePan=false; ctr.enableDamping=true; ctr.minZoom=0.8; ctr.maxZoom=3.2;
 ctr.minAzimuthAngle=-0.15; ctr.maxAzimuthAngle=1.7; ctr.minPolarAngle=0.7; ctr.maxPolarAngle=1.15;
 const camGoal={ target:new THREE.Vector3(0,1.1,0), zoom:1, active:false };
 ctr.addEventListener('start',()=>{ camGoal.active=false; });
-let composer=null, renderPass=null;
+let composer=null, renderPass=null, bloomPass=null;
+function applyBloom(){ const p=(typeof currentPhase==='function')?currentPhase():'night'; const B={morning:[0.06,0.97,0.95],afternoon:[0.08,0.97,0.98],dusk:[0.3,0.9,1.05],night:[0.45,0.86,1.12]}[p]; if(bloomPass){ bloomPass.strength=B[0]; bloomPass.threshold=B[1]; } renderer.toneMappingExposure=B[2]; }
 async function setupBloom(){
   if(LOW) return;
   try{
@@ -563,7 +596,7 @@ async function setupBloom(){
       import('three/addons/postprocessing/EffectComposer.js'), import('three/addons/postprocessing/RenderPass.js'),
       import('three/addons/postprocessing/UnrealBloomPass.js'), import('three/addons/postprocessing/OutputPass.js')]);
     composer=new EffectComposer(renderer); renderPass=new RenderPass(new THREE.Scene(),cam); composer.addPass(renderPass);
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(256,256),0.45,0.6,0.86)); composer.addPass(new OutputPass());
+    bloomPass=new UnrealBloomPass(new THREE.Vector2(256,256),0.45,0.6,0.86); composer.addPass(bloomPass); applyBloom(); composer.addPass(new OutputPass());
     resize();
   }catch(e){ composer=null; }
 }
@@ -711,6 +744,7 @@ function animateAvatar(av,t){
     if(emo.act==='stretch'){ const k=Math.min(1,e*1.6)*(e>2.6?Math.max(0,1-(e-2.6)*1.5):1); armL.rotation.x=armR.rotation.x=-1.2*(1-k); armL.rotation.z=-2.75*k; armR.rotation.z=2.75*k; u.bk.visible=k<0.3; u.torso.scale.y+=0.07*k; u.head.rotation.x=-0.25*k; say='伸個懶腰～'; }
     if(emo.act==='doze'){ u.head.rotation.x=0.55+Math.sin(e*2.2)*0.12; u.head.rotation.z=0.15; say='Zzz…'; }
     if(emo.act==='tea'){ const k=e<1?e:e<2.4?1:Math.max(0,1-(e-2.4)); sipPose(k); say='喝口茶'; }
+    if(emo.act==='done'){ const k=Math.min(1,e*1.6)*(e>2.6?Math.max(0,1-(e-2.6)*1.5):1); armL.rotation.x=armR.rotation.x=-1.2*(1-k); armL.rotation.z=-2.75*k; armR.rotation.z=2.75*k; u.bk.visible=k<0.3; u.head.rotation.x=-0.2*k; say='★ 完成一件事！'; }
     if(emo.act==='mark'){ u.hl.visible=true; const sw=Math.sin(e*4.5); u.hl.position.x=0.02+sw*0.1; armR.rotation.x=-1.4; armR.rotation.z=-0.42+sw*0.14; u.head.rotation.x=0.34; u.bk.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='BoxGeometry'&&c.material.transparent) c.visible=e>0.4; }); say='★ 畫重點'; }
   } else if(u.bk){ u.bk.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='BoxGeometry'&&c.material.transparent) c.visible=false; }); }
   if(!paused&&!emo){ const period=8+(u.ph%5); const ph=(t+u.ph*3)%period; if(u.lastPh!=null&&ph<u.lastPh&&av.parent) audio.flip(); u.lastPh=ph; u.fp.rotation.z = ph<0.8 ? (ph/0.8)*Math.PI : Math.PI; if(ph>period-0.05) u.fp.rotation.z=0; } else u.fp.rotation.z=0;
@@ -847,8 +881,8 @@ function buildCottage(){
     const hit=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.6,1.1),new THREE.MeshBasicMaterial({visible:false})); hit.position.y=0.8; hit.userData.seat=i; g.add(hit);
     R.seats.push({x,z,ry,y:0.6,table:tIdx[i],cup:new THREE.Vector3(tx+dx*0.36,0.775,tz+dz*0.36),glow:seatGlow(scene,x,z),hit,parent:scene}); });
   R.applyPhase=(p)=>{
-    const P={morning:{amb:0.62,hemi:0.5,sun:0.85,sunC:0xfff0d6,glass:0xbcd6ec,ge:0x6a88a8,beam:0.16,lamp:0,bg:0x3a302b,stars:false},
-             afternoon:{amb:0.55,hemi:0.45,sun:0.75,sunC:0xffe0b8,glass:0xa8c4e0,ge:0x5a7898,beam:0.12,lamp:0,bg:0x362c27,stars:false},
+    const P={morning:{amb:0.46,hemi:0.36,sun:0.6,sunC:0xfff0d6,glass:0xbcd6ec,ge:0x6a88a8,beam:0.16,lamp:0,bg:0x3a302b,stars:false},
+             afternoon:{amb:0.42,hemi:0.32,sun:0.55,sunC:0xffe0b8,glass:0xa8c4e0,ge:0x5a7898,beam:0.12,lamp:0,bg:0x362c27,stars:false},
              dusk:{amb:0.36,hemi:0.28,sun:0.42,sunC:0xff9a6a,glass:0xe8a088,ge:0x8a4a40,beam:0.08,lamp:0.7,bg:0x2a211d,stars:false},
              night:{amb:0.22,hemi:0.16,sun:0,sunC:0xffffff,glass:0x27304a,ge:0x141a2e,beam:0,lamp:0.95,bg:0x1d1816,stars:true}}[p];
     amb.intensity=P.amb; hemi.intensity=P.hemi; sun.intensity=P.sun; sun.color.setHex(P.sunC);
@@ -861,7 +895,7 @@ function buildCottage(){
   R.cam={target:new THREE.Vector3(0,1.1,0)};
   R.route=[{x:-0.6,z:-0.55,stop:6,face:[-1.5,-1.0]},{x:0.2,z:-1.3,stop:0},{x:0.95,z:-0.85,stop:6,face:[1.6,-1.6]},{x:2.3,z:0.3,stop:0},{x:0.4,z:0.55,stop:6,face:[0.4,1.6]},{x:-1.9,z:0.5,stop:3,face:[-3.6,0.9]}];
   R.phrases=['辛苦了，喝口茶吧','今天也讀得很認真呢','要不要伸個懶腰？','這一頁讀起來如何？','慢慢讀，不趕時間','暖爐的火剛添好囉'];
-  R.staffName='服務生'; R.stackParent=scene; R.stackPos=new THREE.Vector3(0.7,0,-3.72); R.bookPos=new THREE.Vector3(1.32,0,-3.6);
+  R.staffName='服務生'; R.stackParent=scene; R.stackPos=new THREE.Vector3(0.7,0,-3.72); R.bookPos=new THREE.Vector3(1.32,0,-3.6); R.basketPos=new THREE.Vector3(0.62,0,-3.1);
   return R;
 }
 
@@ -926,8 +960,8 @@ function buildTrain(){
   });
   const ceilL=[]; [-3,0,3].forEach(x=>{ const l=new THREE.PointLight(0xffd8a8,0,6,2); l.position.set(x,3.4,0.3); car.add(l); ceilL.push(l); });
   R.applyPhase=(p)=>{
-    const P={morning:{sky:0xb8d4ea,ground:0x6f8a4e,hill:0x7a9a72,tree:0x4e6a44,tree2:0x5a7a4e,orb:0xfff2d0,orbY:5.6,amb:0.6,hemi:0.5,sun:0.8,sunC:0xfff0d6,stars:false,posts:false,ceil:0,bg:0x3a3430,fields:true},
-             afternoon:{sky:0xa8c8e8,ground:0x7a9a52,hill:0x6a8a66,tree:0x46623e,tree2:0x527248,orb:0xfff0c0,orbY:6.4,amb:0.55,hemi:0.45,sun:0.75,sunC:0xffe0b8,stars:false,posts:false,ceil:0,bg:0x353030,fields:true},
+    const P={morning:{sky:0xb8d4ea,ground:0x6f8a4e,hill:0x7a9a72,tree:0x4e6a44,tree2:0x5a7a4e,orb:0xfff2d0,orbY:5.6,amb:0.45,hemi:0.36,sun:0.6,sunC:0xfff0d6,stars:false,posts:false,ceil:0,bg:0x3a3430,fields:true},
+             afternoon:{sky:0xa8c8e8,ground:0x7a9a52,hill:0x6a8a66,tree:0x46623e,tree2:0x527248,orb:0xfff0c0,orbY:6.4,amb:0.42,hemi:0.32,sun:0.55,sunC:0xffe0b8,stars:false,posts:false,ceil:0,bg:0x353030,fields:true},
              dusk:{sky:0xe8a08c,ground:0x4a4a38,hill:0x6a4a52,tree:0x3a3438,tree2:0x443c40,orb:0xffb070,orbY:2.4,amb:0.36,hemi:0.28,sun:0.4,sunC:0xff9a6a,stars:false,posts:true,ceil:0.3,bg:0x2a2224,fields:true},
              night:{sky:0x1c2236,ground:0x1e2420,hill:0x2a3040,tree:0x2f3b33,tree2:0x34423a,orb:0xf3e6c4,orbY:5.2,amb:0.24,hemi:0.18,sun:0,sunC:0xffffff,stars:true,posts:true,ceil:0.15,bg:0x1d1b22,fields:false}}[p];
     skyM.color.setHex(P.sky); groundM.color.setHex(P.ground); hillM.color.setHex(P.hill); treeM.color.setHex(P.tree); treeM2.color.setHex(P.tree2);
@@ -942,7 +976,7 @@ function buildTrain(){
   R.cam={target:new THREE.Vector3(0,1.3,0)};
   R.route=[{x:-3.8,z:0.45,stop:2,face:[-4.6,0.45]},{x:-2.75,z:0.35,stop:6,face:[-2.75,-1.3]},{x:0,z:0.35,stop:6,face:[0,-1.3]},{x:2.75,z:0.35,stop:6,face:[2.75,-1.3]},{x:3.6,z:0.5,stop:2,face:[4.6,0.5]},{x:1.4,z:0.6,stop:0},{x:-1.4,z:0.6,stop:0}];
   R.phrases=['下一站：專心站','各位旅客，車上供應熱可可','窗外夜色很美喔','本列車不趕時間，請慢慢讀','記得補充水分','前方路段平穩，請安心閱讀'];
-  R.staffName='列車長'; R.stackParent=car; R.stackPos=new THREE.Vector3(-4.05,0,1.65); R.bookPos=new THREE.Vector3(-3.45,0,1.75);
+  R.staffName='列車長'; R.stackParent=car; R.stackPos=new THREE.Vector3(-4.05,0,1.65); R.bookPos=new THREE.Vector3(-3.45,0,1.75); R.basketPos=new THREE.Vector3(-4.1,0,1.0);
   return R;
 }
 
@@ -963,7 +997,7 @@ function openRoomScene(rid){
 }
 function currentPhase(){ return S.phaseOverride||autoPhase(); }
 let lastPhase=null;
-function applyPhaseNow(){ if(!R) return; const p=currentPhase(); R.applyPhase(p); lastPhase=p; updatePhaseBtn(); audio.update(); }
+function applyPhaseNow(){ if(!R) return; const p=currentPhase(); R.applyPhase(p); applyBloom(); lastPhase=p; updatePhaseBtn(); audio.update(); }
 function updatePhaseBtn(){ $('btnPhase').textContent=(S.phaseOverride?'預覽・':'自動・')+PHASE_ZH[currentPhase()]; }
 function applyTier(){ if(!R) return; const t=groupTier(); R.tiers.forEach((grp,i)=>grp.forEach(o=>o.visible=t>i)); }
 
@@ -992,7 +1026,7 @@ function syncAvatars(){
   R.seats.forEach((s,i)=>{ if(!s.taken) want.set('s:'+i,{text:'空位',cls:'tag empty',pos:new THREE.Vector3(s.x,1.5,s.z),parent:s.parent}); });
   for(const [k,el] of tagEls){ if(!want.has(k)){ el.remove(); tagEls.delete(k); } }
   for(const [k,w] of want){ let el=tagEls.get(k); if(!el){ el=document.createElement('div'); $('labels').append(el); tagEls.set(k,el); } if(!w.bubble){ el.className=w.cls; el.textContent=w.text; } else if(!el.className) el.className=w.cls; el._w=w; }
-  const n=occ.length; $('rCount').textContent=n+' 人正在這裡閱讀'+(staffAvs.size?'・'+R.staffName+'上工中':'');
+  const n=occ.length; $('rCount').textContent=n+' 人正在這裡專心'+(staffAvs.size?'・'+R.staffName+'上工中':'');
 }
 function resolveSeat(){
   if(!R||S.seat==null) return;
@@ -1054,12 +1088,57 @@ function loop(){
 
 /* ================= emotes ================= */
 const EMOTES=[['wave','揮揮手'],['stretch','伸懶腰'],['doze','打瞌睡'],['tea','喝口茶'],['mark','畫重點']];
+const EMOTE_OK=[...EMOTES.map(e=>e[0]),'done'];
 let lastEmote=0;
 $('btnEmote').onclick=()=>{ if(S.staff){ toast('上工中，下工回座位才能做動作'); return; } if(S.seat==null){ toast('先坐下來再做動作'); return; }
   const box=$('emoteActs'); box.innerHTML=''; EMOTES.forEach(([k,l])=>{ const b=document.createElement('button'); b.type='button'; b.textContent=l; b.onclick=()=>doEmote(k); box.append(b); }); $('vEmote').hidden=false; };
 $('xEmote').onclick=()=>$('vEmote').hidden=true;
 function doEmote(act){ $('vEmote').hidden=true; if(Date.now()-lastEmote<1500) return; lastEmote=Date.now(); onEmote({uid:S.uid,act}); if(chan&&chanReady) chan.send({type:'broadcast',event:'emote',payload:{uid:S.uid,act,room:R?.id}}).catch(()=>{}); }
-function onEmote(d){ if(!R||!d||!EMOTES.some(e=>e[0]===d.act)) return; if(d.room&&d.room!==R.id) return; const av=findAvatar(String(d.uid||'')); if(av) av.userData.emote={act:d.act,t0:performance.now()}; }
+function onEmote(d){ if(!R||!d||!EMOTE_OK.includes(d.act)) return; if(d.room&&d.room!==R.id) return; const av=findAvatar(String(d.uid||'')); if(av) av.userData.emote={act:d.act,t0:performance.now()}; }
+
+/* ================= focus activity (private) ================= */
+const ACTS=['讀書','看文獻','備課','做講義','改作業','改作文','寫報告','其他'];
+let actDraft=store.get('mmd.act','讀書');
+function curAct(){ return store.get('mmd.act','讀書'); }
+function renderActPill(){ $('actPill').textContent='正在：'+curAct(); }
+function openAct(){ const p=$('actPick'); p.innerHTML=''; const cur=curAct(); actDraft=ACTS.includes(cur)?cur:'其他';
+  ACTS.forEach(a=>{ const b=document.createElement('button'); b.type='button'; b.textContent=a; b.className=a===actDraft?'on':''; b.onclick=()=>{ actDraft=a; [...p.children].forEach(c=>c.className=''); b.className='on'; $('actOtherBox').hidden=a!=='其他'; }; p.append(b); });
+  $('actOtherBox').hidden=actDraft!=='其他'; $('actOther').value=ACTS.includes(cur)?'':cur; $('actErr').textContent=''; $('vAct').hidden=false; }
+$('actGo').onclick=()=>{ let v=actDraft; if(v==='其他'){ v=$('actOther').value.trim(); if(!v){ $('actErr').textContent='寫一下要做什麼，或選上面的項目'; return; } } store.set('mmd.act',v.slice(0,10)); $('vAct').hidden=true; renderActPill(); toast('開始'+v.slice(0,10)+'，加油！'); };
+$('actOther').oninput=()=>$('actErr').textContent='';
+$('xAct').onclick=()=>$('vAct').hidden=true; $('actPill').onclick=openAct;
+function addActMinutes(n){ const k='mmd.actmin.'+ym(); const m=store.get(k,{})||{}; const a=curAct(); m[a]=(m[a]||0)+n; store.set(k,m); }
+
+/* ================= to-do list (private) ================= */
+const TODO={items:[],remote:false,delArm:null};
+async function loadTodos(){
+  if(sb&&S.uid){ const {data,error}=await sb.from('todos').select('id,text,done,done_at,created_at').order('created_at',{ascending:true}).limit(300); if(!error&&data){ TODO.items=data; TODO.remote=true; } else { TODO.remote=false; TODO.items=store.get('mmd.todos',[]); } }
+  else TODO.items=store.get('mmd.todos',[]);
+  renderTodos();
+}
+function todoRow(t){ const r=document.createElement('div'); r.className='todo'+(t.done?' done':'');
+  const ck=document.createElement('button'); ck.type='button'; ck.className='ck'; ck.setAttribute('aria-label',t.done?'標成未完成':'標成完成'); ck.onclick=()=>toggleTodo(t);
+  const tx=document.createElement('span'); tx.className='tx'; tx.textContent=t.text;
+  const rm=document.createElement('button'); rm.type='button'; rm.className='rm'; rm.textContent=TODO.delArm===t.id?'刪':'×'; rm.setAttribute('aria-label','刪除'); rm.onclick=()=>{ if(TODO.delArm!==t.id){ TODO.delArm=t.id; renderTodos(); return; } TODO.delArm=null; delTodo(t); };
+  r.append(ck,tx,rm); return r; }
+function renderTodos(){ const L=$('todoList'), D=$('todoDone'); L.innerHTML=''; D.innerHTML='';
+  const open=TODO.items.filter(t=>!t.done), done=TODO.items.filter(t=>t.done).sort((a,b)=>String(b.done_at).localeCompare(String(a.done_at))).slice(0,30);
+  if(!open.length){ const p=document.createElement('p'); p.className='empty-note'; p.textContent=done.length?'今天的事都做完了，太厲害了！':'還沒有待辦。把今天想完成的事寫下來，一件一件打勾。'; L.append(p); }
+  open.forEach(t=>L.append(todoRow(t))); done.forEach(t=>D.append(todoRow(t))); $('todoDoneBox').hidden=!done.length; }
+async function saveTodosLocal(){ store.set('mmd.todos',TODO.items); }
+$('fTodo').onsubmit=async e=>{ e.preventDefault(); const text=$('todoIn').value.trim(); if(!text){ $('todoErr').textContent='寫下要做的事再加入'; return; }
+  if(TODO.remote&&sb){ const {error}=await sb.from('todos').insert({text:text.slice(0,60)}); if(error){ $('todoErr').textContent='沒加成功，請稍後再試'; return; } }
+  else { TODO.items.push({id:'t'+Date.now(),text:text.slice(0,60),done:false,created_at:new Date().toISOString()}); saveTodosLocal(); }
+  $('todoIn').value=''; loadTodos(); };
+$('todoIn').oninput=()=>$('todoErr').textContent='';
+async function toggleTodo(t){ const done=!t.done; const at=done?new Date().toISOString():null;
+  if(TODO.remote&&sb){ const {error}=await sb.from('todos').update({done,done_at:at}).eq('id',t.id); if(error){ toast('沒更新成功，請稍後再試'); return; } }
+  else { t.done=done; t.done_at=at; saveTodosLocal(); }
+  if(done){ toast('完成一件事！'); if(R&&S.seat!=null){ doEmote('done'); } }
+  await loadTodos(); loadCounts(); }
+async function delTodo(t){ if(TODO.remote&&sb){ const {error}=await sb.from('todos').delete().eq('id',t.id); if(error){ toast('刪除失敗'); return; } } else { TODO.items=TODO.items.filter(x=>x.id!==t.id); saveTodosLocal(); } loadTodos(); loadCounts(); }
+$('btnTodo').onclick=$('btnTodoR').onclick=()=>{ $('vTodo').hidden=false; $('todoErr').textContent=''; loadTodos(); };
+$('xTodo').onclick=()=>$('vTodo').hidden=true;
 
 /* ================= reading log (private) ================= */
 const LOG={items:[],tab:'all',kind:'paper',editing:null,delArm:null};
@@ -1103,10 +1182,11 @@ $('fLog').onsubmit=async e=>{
 async function delLog(id){ if(LOG.remote&&sb){ const {error}=await sb.from('readings').delete().eq('id',id); if(error){ toast('刪除失敗，請稍後再試'); return; } } else { store.set('mmd.log',store.get('mmd.log',[]).filter(x=>x.id!==id)); } loadLog(); loadCounts(); }
 
 /* ================= shelf counts ================= */
-S.readCounts={books:0,papers:0};
+S.readCounts={books:0,papers:0}; S.todoDone=0;
 async function loadCounts(){
-  if(sb){ const {data,error}=await sb.rpc('station_read_counts',{p_ym:ym()}); if(!error&&data) S.readCounts={books:+data.books||0,papers:+data.papers||0}; }
-  else { const k=ym(); const l=store.get('mmd.log',[]).filter(x=>String(x.created_at||'').slice(0,7)===k); S.readCounts={books:l.filter(x=>x.kind==='book').length,papers:l.filter(x=>x.kind==='paper').length}; }
+  if(sb){ const {data,error}=await sb.rpc('station_read_counts',{p_ym:ym()}); if(!error&&data) S.readCounts={books:+data.books||0,papers:+data.papers||0};
+    const td=await sb.rpc('station_todo_done',{p_ym:ym()}); if(!td.error&&td.data!=null) S.todoDone=+td.data||0; }
+  else { const k=ym(); const l=store.get('mmd.log',[]).filter(x=>String(x.created_at||'').slice(0,7)===k); S.readCounts={books:l.filter(x=>x.kind==='book').length,papers:l.filter(x=>x.kind==='paper').length}; S.todoDone=(store.get('mmd.todos',[])||[]).filter(t=>t.done&&String(t.done_at||'').slice(0,7)===k).length; }
   updateStacks(); renderLobby();
 }
 setInterval(()=>{ if(S.room) loadCounts(); },120000);
@@ -1121,7 +1201,13 @@ function updateStacks(){
     if(i%3===0) add(new THREE.BoxGeometry(0.07,0.005,0.07),M(NC[i%NC.length],0.9),0.2,y+h+0.003,0.12,rack,false); y+=h+0.004; }
   const pile=new THREE.Group(); pile.position.copy(R.bookPos); g.add(pile); const nb=Math.min(books,14); let by=0;
   for(let i=0;i<nb;i++){ const h=0.08+((i*17)%5)*0.01; const b=add(new THREE.BoxGeometry(0.5,h,0.36),M(BOOKC[i%BOOKC.length],0.75),0,by+h/2,0,pile); b.rotation.y=((i*31)%9-4)*0.07; by+=h; }
-  R.stackTag=(papers||books)?('本月 '+papers+' 篇・'+books+' 本'):'';
+  const basket=new THREE.Group(); basket.position.copy(R.basketPos); g.add(basket);
+  const wv=M(0xb08463,0.95); const bowl=add(new THREE.CylinderGeometry(0.3,0.24,0.32,20,1,true),wv,0,0.16,0,basket); bowl.material.side=THREE.DoubleSide;
+  add(new THREE.CylinderGeometry(0.24,0.24,0.02,20),wv,0,0.01,0,basket); add(new THREE.TorusGeometry(0.3,0.025,6,24),M(0x8a6248,0.9),0,0.32,0,basket).rotation.x=Math.PI/2;
+  for(let i=0;i<5;i++) add(new THREE.TorusGeometry(0.27-i*0.006,0.008,4,24),M(0x8a6248,0.9),0,0.06+i*0.055,0,basket,false).rotation.x=Math.PI/2;
+  const nd=Math.min(S.todoDone||0,40); for(let i=0;i<nd;i++){ const a=i*2.4, r=0.05+((i*7)%10)*0.017, h=0.04+Math.min(0.3,i*0.008); const sl=add(new THREE.BoxGeometry(0.12,0.006,0.08),M(NC[i%NC.length],0.9),Math.cos(a)*r,h,Math.sin(a)*r,basket,false); sl.rotation.set(((i*13)%7-3)*0.2,a,((i*11)%5-2)*0.2); }
+  const td=S.todoDone||0;
+  R.stackTag=(papers||books||td)?('本月 '+papers+' 篇・'+books+' 本・完成 '+td+' 件'):'';
   R.stackTagPos=new THREE.Vector3(R.stackPos.x,y+0.35,R.stackPos.z); syncAvatars();
 }
 
@@ -1197,7 +1283,7 @@ function openStaffSheet(key){
 }
 $('xStaff').onclick=()=>$('vStaff').hidden=true;
 function onDuty(){ if(!S.isOwner||!R) return; if(S.reading){ S.readAcc+=Date.now()-S.readStart; S.reading=false; } S.staff=true; S.staffSince=Date.now(); S.seat=null; $('btnStaff').hidden=true; pushPresence(); syncAvatars(); renderRead(); toast('上工囉！點一下旅客就能為他服務'); }
-function offDuty(){ S.staff=false; S.seat=freeSeat(store.get('mmd.seat.'+R.id,null)); S.reading=true; S.readStart=Date.now(); $('btnStaff').hidden=!S.isOwner; pushPresence(); syncAvatars(); renderRead(); keepAwake(true); toast('下工了，回座位繼續讀書'); }
+function offDuty(){ S.staff=false; S.seat=freeSeat(store.get('mmd.seat.'+R.id,null)); S.reading=true; S.readStart=Date.now(); $('btnStaff').hidden=!S.isOwner; pushPresence(); syncAvatars(); renderRead(); keepAwake(true); toast('下工了，回座位繼續專心'); }
 $('btnStaff').onclick=onDuty;
 
 /* ================= fullscreen ================= */
@@ -1233,6 +1319,7 @@ async function enterRoom(rid){
   if(roomOccupants(rid).filter(p=>!(p.isMe&&p.sameTab)).length>=6){ toast('這間目前坐滿了，換另一間試試'); return; }
   $('lobby').hidden=true; $('roomView').hidden=false; $('rName').textContent=ROOMS[rid].zh; S.staff=false; $('btnStaff').hidden=!S.isOwner; $('btnStaff').textContent=rid==='train'?'上工當列車長':'上工當服務生';
   S.room=rid; openRoomScene(rid);
+  renderActPill(); if(store.get('mmd.actDay','')!==taipeiDate()){ store.set('mmd.actDay',taipeiDate()); setTimeout(openAct,400); }
   S.seat=freeSeat(store.get('mmd.seat.'+rid,null)); S.reading=true; S.readStart=Date.now(); S.readAcc=0; creditedMin=0; S.lookMe=false; $('btnMe').textContent='看看我'; camGoal.active=false; $('btnMe').classList.remove('on');
   pushPresence(); syncAvatars(); renderRead(); audio.update(); keepAwake(true); showRoomNote();
   $('rHint').hidden=false; loadCounts(); setTimeout(()=>{$('rHint').hidden=true;},7000);
@@ -1250,7 +1337,7 @@ $('go-cottage').onclick=()=>{ audio.wake(); enterRoom('cottage'); }; $('go-train
 function renderRead(){
   const pill=$('readPill'); pill.classList.toggle('off',!S.reading);
   if(S.staff){ $('rLabel').textContent=(R?.staffName||'站長')+'上工中'; $('btnRead').textContent='下工回座位'; }
-  else { $('rLabel').textContent=S.reading?'閱讀中':'休息中'; $('btnRead').textContent=S.reading?'休息一下':'回來讀書'; }
+  else { $('rLabel').textContent=S.reading?'專心中':'休息中'; $('btnRead').textContent=S.reading?'休息一下':'回來專心'; }
   const secs=Math.floor((S.readAcc+(S.reading?Date.now()-S.readStart:0))/1000); $('rTimer').textContent=fmt2(Math.floor(secs/3600))+':'+fmt2(Math.floor(secs/60)%60)+':'+fmt2(secs%60);
 }
 let creditedMin=0;
@@ -1258,7 +1345,7 @@ $('btnRead').onclick=()=>{ if(S.staff){ offDuty(); return; } if(S.reading){ S.re
 function sessionMs(){ return S.readAcc+(S.reading?Date.now()-S.readStart:0); }
 setInterval(()=>{
   renderClock();
-  if(S.room&&!S.reading&&!S.staff&&S.restAt&&!S.restReminded&&Date.now()-S.restAt>600000){ S.restReminded=true; ding(); toast('休息 10 分鐘囉，要回來讀書嗎？'); }
+  if(S.room&&!S.reading&&!S.staff&&S.restAt&&!S.restReminded&&Date.now()-S.restAt>600000){ S.restReminded=true; ding(); toast('休息 10 分鐘囉，要回來繼續嗎？'); }
   if(S.room){ renderRead(); const m=Math.floor(sessionMs()/60000); if(m>creditedMin){ const add=m-creditedMin; creditedMin=m; creditMinutes(add); } }
   if(R && currentPhase()!==lastPhase) applyPhaseNow();
 },1000);
@@ -1630,6 +1717,7 @@ async function loadProfile(){
 async function creditMinutes(n){
   if(!S.profile) return;
   const before=accCount();
+  addActMinutes(n);
   const k=ym(); const p=S.profile; p.total=(p.total||0)+n; p.months={...(p.months||{})}; p.months[k]=(p.months[k]||0)+n;
   store.set('mmd.profile',p);
   if(sb&&S.hasRemote){ const {data}=await sb.rpc('add_minutes',{p_ym:k,p_n:n}); if(typeof data==='number') p.total=data; }
