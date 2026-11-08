@@ -147,6 +147,16 @@ button{cursor:pointer}
 .bubble{position:absolute;transform:translate(-50%,-100%);background:#f6efe4;color:#3a2a22;font-family:var(--f-display);font-size:13px;padding:5px 11px;border-radius:12px;white-space:nowrap;box-shadow:0 2px 0 rgba(0,0,0,.25);transition:opacity .3s}
 .bubble::after{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border:6px solid transparent;border-top-color:#f6efe4;border-bottom:0}
 .bubble.off{opacity:0}
+.tag.stack{color:var(--lamp);font-size:11px}
+.logcard{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:4px;background:var(--panel-2);min-width:0}
+.logcard .k{font-size:11px;letter-spacing:.12em;color:var(--rose)}
+.logcard .ti{font-family:var(--f-display);font-size:17px;font-weight:700;word-break:break-word}
+.logcard .me{font-size:13px;color:var(--muted);word-break:break-word}
+.logcard .no{font-size:14px;word-break:break-word}
+.logcard a{color:var(--lamp);font-size:13px;word-break:break-all}
+.logcard .ops{display:flex;gap:6px;margin-top:4px}
+.logcard .ops button{border:1px solid var(--line-2);background:transparent;border-radius:999px;padding:3px 12px;font-size:12px}
+.seg button.on{background:var(--rose);color:#3a1f1c;border-color:var(--rose)}
 .hint{font-size:12px;color:var(--muted);background:rgba(26,21,19,.7);border-radius:999px;padding:3px 12px}
 
 /* ---------- sheets / modals ---------- */
@@ -231,6 +241,7 @@ input[type=range]{accent-color:var(--rose)}
             <div class="loco" id="gLoco" style="left:0"></div>
           </div>
           <div class="stops" id="gStops"></div>
+          <p class="note-line" id="gReads" style="margin:0"></p>
         </section>
 
         <section class="card" aria-labelledby="mTitle">
@@ -239,6 +250,7 @@ input[type=range]{accent-color:var(--rose)}
           <div id="myCard"></div>
           <div class="btnrow">
             <button class="btn" id="btnEdit" type="button">修改角色</button>
+            <button class="btn" id="btnLog" type="button">閱讀紀錄本</button>
             <button class="btn" id="btnNotesL" type="button">紙條牆</button>
             <button class="btn" id="btnAdmin" type="button">站長登入</button>
           </div>
@@ -258,9 +270,11 @@ input[type=range]{accent-color:var(--rose)}
     <div class="roomnote" id="roomNote" hidden><b>站長公告</b><span id="roomNoteText"></span><button type="button" id="roomNoteX" aria-label="收起公告">×</button></div>
     <div class="hud-bot">
       <div class="hint" id="rHint">點空位換座位，點別人送一杯茶</div>
-      <div class="readpill" id="readPill"><span class="dotl"></span><span id="rLabel">閱讀中</span><span class="tm" id="rTimer">00:00</span><button id="btnRead" type="button">停止閱讀</button></div>
+      <div class="readpill" id="readPill"><span class="dotl"></span><span id="rLabel">閱讀中</span><span class="tm" id="rTimer">00:00</span><button id="btnRead" type="button">休息一下</button></div>
       <div class="tools">
         <button class="tool" id="btnTea" type="button">送茶</button>
+        <button class="tool" id="btnEmote" type="button">動作</button>
+        <button class="tool" id="btnLogR" type="button">紀錄本</button>
         <button class="tool" id="btnNotes" type="button">紙條牆</button>
         <button class="tool" id="btnMe" type="button">看看我</button>
         <button class="tool" id="btnSound" type="button">聲音</button>
@@ -300,6 +314,35 @@ input[type=range]{accent-color:var(--rose)}
         <div class="err" id="noteErr"></div>
       </form>
       <div class="notes" id="noteList"></div>
+    </div>
+  </div>
+
+  <div class="veil" id="vEmote" hidden>
+    <div class="sheet">
+      <button class="x" type="button" id="xEmote" aria-label="關閉">×</button>
+      <h3>做個動作</h3>
+      <div class="pick" id="emoteActs"></div>
+    </div>
+  </div>
+
+  <div class="veil" id="vLog" hidden>
+    <div class="sheet">
+      <button class="x" type="button" id="xLog" aria-label="關閉">×</button>
+      <h3>我的閱讀紀錄本</h3>
+      <p class="note-line" style="margin:-6px 0 0">只有你自己看得到。房間的文件架只會顯示全車站的數量。</p>
+      <div class="btnrow" id="logTabs"></div>
+      <input type="text" id="logSearch" placeholder="搜尋篇名、作者、標籤或重點" autocomplete="off">
+      <button class="btn primary" id="logNew" type="button">新增一筆</button>
+      <form id="fLog" novalidate hidden style="display:grid;gap:10px;border:1px solid var(--line-2);border-radius:12px;padding:14px">
+        <div class="btnrow" id="logKind"></div>
+        <div><label class="lbl2" for="logTitle">篇名／書名</label><input type="text" id="logTitle" maxlength="150" placeholder="The role of prosody in reading comprehension"><div class="err" id="logErr"></div></div>
+        <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:8px"><div><label class="lbl2" for="logAuthors">作者</label><input type="text" id="logAuthors" maxlength="100" placeholder="Rasinski, T."></div><div><label class="lbl2" for="logYear">年份</label><input type="number" id="logYear" min="1800" max="2100" step="1" placeholder="2023"></div></div>
+        <div><label class="lbl2" for="logNote">一句話重點（<span id="logCount">0</span>/50）</label><textarea id="logNote" maxlength="50" placeholder="流暢度和理解有中度相關，朗讀訓練有幫助。"></textarea></div>
+        <div><label class="lbl2" for="logTags">標籤（用逗號分開）</label><input type="text" id="logTags" maxlength="60" placeholder="教育研究法, 閱讀"></div>
+        <div><label class="lbl2" for="logLink">連結或 DOI（選填）</label><input type="text" id="logLink" maxlength="400" placeholder="https://doi.org/..."></div>
+        <div class="btnrow"><button class="btn primary" type="submit" id="logSave">儲存</button><button class="btn" type="button" id="logCancel">取消</button></div>
+      </form>
+      <div id="logList" style="display:grid;gap:10px"></div>
     </div>
   </div>
 
@@ -458,6 +501,7 @@ function renderLobby(){
   const st=$('gStops'); st.innerHTML='';
   names.forEach((nm,i)=>{ const d=document.createElement('div'); d.className='stopcard'+(tier>i?' on':''); const b=document.createElement('b'); b.textContent=Math.round(G*(i+1)/3)+' 小時'; d.append(b, (tier>i?'已解鎖・':'解鎖・')+nm); st.append(d); });
   document.querySelectorAll('.rail .stop').forEach((el,i)=>el.classList.toggle('on',tier>i));
+  const rc=S.readCounts||{books:0,papers:0}; $('gReads').textContent=(rc.papers||rc.books)?('本月大家一共登記了 '+rc.papers+' 篇文獻、'+rc.books+' 本書'):'讀完一篇文獻或一本書，記得到「閱讀紀錄本」登記，房間的文件架會跟著變高。';
   renderMyCard();
 }
 function renderMyCard(){
@@ -549,7 +593,7 @@ function buildAnimal(spec){
   const sc=(SCARVES.find(s=>s.k===spec.scarf)||SCARVES[0]).c;
   const root=new THREE.Group(); const a=new THREE.Group(); root.add(a);
   const fur=FAB(an.c,0xfff0e6), belly=FAB(an.b,0xffffff), sw=FAB(0xffffff,0xfff0e6,{map:stripeTex(sc,'#f3e9dc')}), pants=FAB(an.p,0xf0e0d0), scarfM=FAB(new THREE.Color(sc).getHex(),0xffffff);
-  const staff=spec.staff||null; const legs=[];
+  const staff=spec.staff||null; const legs=[]; const extras={};
   let torso;
   if(!staff){
   torso=add(SPH(0.38,28),sw,0,0.38,0,a); torso.scale.set(1,1.12,0.88);
@@ -558,12 +602,20 @@ function buildAnimal(spec){
   [-1,1].forEach(s=>{
     const l=add(new THREE.CapsuleGeometry(0.12,0.24,6,14),pants,s*0.16,0.1,0.24,a); l.rotation.x=Math.PI/2;
     const f=add(SPH(0.12,14),fur,s*0.16,0.1,0.46,a); f.scale.set(1,0.9,1.2);
-    const ar=add(new THREE.CapsuleGeometry(0.09,0.26,6,12),sw,s*0.3,0.47,0.17,a); ar.rotation.set(-1.05,0,s*0.35);
-    add(SPH(0.085,12),fur,s*0.19,0.43,0.38,a);
+    const ag=new THREE.Group(); ag.position.set(s*0.3,0.62,0.05); a.add(ag);
+    const ar=add(new THREE.CapsuleGeometry(0.09,0.26,6,12),sw,0,-0.15,0.12,ag); ar.rotation.set(-1.05,0,s*0.35);
+    add(SPH(0.085,12),fur,-s*0.11,-0.19,0.33,ag);
+    legs.push(ag);
   });
   const bk=new THREE.Group(); bk.position.set(0,0.46,0.44); bk.rotation.x=-0.85; a.add(bk);
   add(RB(0.6,0.03,0.4,0.01,2),M(BOOKC[(spec.nick||'').length%BOOKC.length],0.7),0,0,0,bk);
   [-1,1].forEach(s=>{ const p=add(RB(0.27,0.05,0.37,0.01,2),PAGE,s*0.145,0.03,0,bk); p.rotation.z=-s*0.12; });
+  const fp=new THREE.Group(); fp.position.set(0,0.065,0); bk.add(fp); add(RB(0.26,0.01,0.35,0.004,2),PAGE,0.135,0,0,fp,false);
+  extras.bk=bk; extras.fp=fp;
+  const armR=legs[1];
+  const rc=makeCup('奶茶'); rc.scale.setScalar(0.85); rc.position.set(-0.11,-0.12,0.36); rc.visible=false; armR.add(rc); extras.rc=rc;
+  const hl=new THREE.Group(); hl.visible=false; bk.add(hl); add(new THREE.CylinderGeometry(0.018,0.018,0.16,8),M(0xf0d24a,0.5),0,0.09,0,hl,false).rotation.z=Math.PI/2.6;
+  add(new THREE.BoxGeometry(0.2,0.004,0.03),new THREE.MeshBasicMaterial({color:0xfff07a,transparent:true,opacity:0.75}),0.14,0.072,0.05,bk,false).visible=false; extras.hl=hl;
   } else {
     const waiter=staff==='waiter';
     const shirt=FAB(waiter?0xf6f0e6:0x2e3a52,0xffffff), pantM=FAB(waiter?0x2f2622:0x26304a,0xd0d8f0);
@@ -620,14 +672,29 @@ function buildAnimal(spec){
   add(new THREE.TorusGeometry(0.045,0.012,6,12),M(0xf5ead8,0.4),0.11,0,0,cup,false);
   const steam=[]; for(let i=0;i<3;i++){ const s=add(SPH(0.03,8),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.5}),0,0.12,0,cup,false); s.userData.o=i/3; steam.push(s); }
   const hit=new THREE.Mesh(new THREE.SphereGeometry(0.8,8,6),new THREE.MeshBasicMaterial({visible:false})); hit.position.set(0,1.2,0.1); root.add(hit);
-  root.userData={a,torso,head,cup,steam,hit,legs,staff,teaUntil:0,ph:Math.random()*6};
+  root.userData={a,torso,head,cup,steam,hit,legs,staff,...extras,teaUntil:0,ph:Math.random()*6};
   return root;
 }
 function animateAvatar(av,t){
-  const u=av.userData; u.torso.scale.y=1.12+Math.sin(t*1.6+u.ph)*0.015;
-  const paused=av.userData.paused; u.head.rotation.x=(paused?0.05:0.22)+Math.sin(t*0.7+u.ph)*0.04; u.head.rotation.z=Math.sin(t*0.5+u.ph)*0.05;
-  const showCup=performance.now()<u.teaUntil; u.cup.visible=showCup;
+  const u=av.userData; u.torso.scale.y=(u.staff?1.15:1.12)+Math.sin(t*1.6+u.ph)*0.015;
+  const now=performance.now(); const paused=u.paused;
+  u.head.rotation.x=(paused?0.05:0.22)+Math.sin(t*0.7+u.ph)*0.04; u.head.rotation.z=Math.sin(t*0.5+u.ph)*0.05;
+  const showCup=now<u.teaUntil; u.cup.visible=showCup;
   if(showCup){ u.cup.position.y=1.75+Math.sin(t*3)*0.05; u.cup.rotation.y=t; u.steam.forEach(s=>{const k=(t*0.6+s.userData.o)%1; s.position.set(Math.sin(k*6)*0.03,0.12+k*0.35,0); s.material.opacity=0.5*(1-k); s.scale.setScalar(0.7+k);}); }
+  if(u.staff||!u.bk) return;
+  const [armL,armR]=u.legs; armL.rotation.set(0,0,0); armR.rotation.set(0,0,0); u.bk.visible=true; u.rc.visible=false; u.hl.visible=false;
+  const emo=(u.emote&&now-u.emote.t0<3400)?u.emote:null; if(u.emote&&!emo) u.emote=null;
+  let say='';
+  if(paused&&!emo){ u.bk.visible=false; u.rc.visible=true; const sip=(Math.sin(t*0.6+u.ph)+1)/2; armR.rotation.x=-0.5-sip*0.7; say='休息中'; }
+  if(emo){ const e=(now-emo.t0)/1000;
+    if(emo.act==='wave'){ armR.rotation.x=-2.3; armR.rotation.z=-0.2+Math.sin(e*11)*0.4; say='嗨～'; }
+    if(emo.act==='stretch'){ const k=Math.min(1,e*1.6)*(e>2.6?Math.max(0,1-(e-2.6)*1.5):1); armL.rotation.x=armR.rotation.x=-2.7*k; armL.rotation.z=0.3*k; armR.rotation.z=-0.3*k; u.bk.visible=k<0.3; u.torso.scale.y+=0.07*k; u.head.rotation.x=-0.25*k; say='伸個懶腰～'; }
+    if(emo.act==='doze'){ u.head.rotation.x=0.55+Math.sin(e*2.2)*0.12; u.head.rotation.z=0.15; say='Zzz…'; }
+    if(emo.act==='tea'){ u.bk.visible=false; u.rc.visible=true; armR.rotation.x=-0.5-Math.min(1,e)*0.7; say='喝口茶'; }
+    if(emo.act==='mark'){ u.hl.visible=true; u.hl.position.set(-0.05+((e*0.7)%0.3),0,0.05); u.bk.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='BoxGeometry'&&c.material.transparent) c.visible=e>0.4; }); say='★ 畫重點'; }
+  } else if(u.bk){ u.bk.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='BoxGeometry'&&c.material.transparent) c.visible=false; }); }
+  if(!paused&&!emo){ const period=8+(u.ph%5); const ph=(t+u.ph*3)%period; u.fp.rotation.z = ph<0.8 ? (ph/0.8)*Math.PI : Math.PI; if(ph>period-0.05) u.fp.rotation.z=0; } else u.fp.rotation.z=0;
+  if(u.key){ const el=tagEls.get('e:'+u.key); if(el){ if(say){ if(el.textContent!==say) el.textContent=say; el.classList.remove('off'); } else el.classList.add('off'); } }
 }
 
 /* ---------- shared deco ---------- */
@@ -774,7 +841,7 @@ function buildCottage(){
   R.cam={target:new THREE.Vector3(0,1.1,0)};
   R.route=[{x:-0.6,z:-0.55,stop:6,face:[-1.5,-1.0]},{x:0.2,z:-1.3,stop:0},{x:0.95,z:-0.85,stop:6,face:[1.6,-1.6]},{x:2.3,z:0.3,stop:0},{x:0.4,z:0.55,stop:6,face:[0.4,1.6]},{x:-1.9,z:0.5,stop:3,face:[-3.6,0.9]}];
   R.phrases=['辛苦了，喝口茶吧','今天也讀得很認真呢','要不要伸個懶腰？','這一頁讀起來如何？','慢慢讀，不趕時間','暖爐的火剛添好囉'];
-  R.staffName='服務生';
+  R.staffName='服務生'; R.stackParent=scene; R.stackPos=new THREE.Vector3(0.7,0,-3.72); R.bookPos=new THREE.Vector3(1.32,0,-3.6);
   return R;
 }
 
@@ -855,7 +922,7 @@ function buildTrain(){
   R.cam={target:new THREE.Vector3(0,1.3,0)};
   R.route=[{x:-3.8,z:0.45,stop:2,face:[-4.6,0.45]},{x:-2.75,z:0.35,stop:6,face:[-2.75,-1.3]},{x:0,z:0.35,stop:6,face:[0,-1.3]},{x:2.75,z:0.35,stop:6,face:[2.75,-1.3]},{x:3.6,z:0.5,stop:2,face:[4.6,0.5]},{x:1.4,z:0.6,stop:0},{x:-1.4,z:0.6,stop:0}];
   R.phrases=['下一站：專心站','各位旅客，車上供應熱可可','窗外夜色很美喔','本列車不趕時間，請慢慢讀','記得補充水分','前方路段平穩，請安心閱讀'];
-  R.staffName='列車長';
+  R.staffName='列車長'; R.stackParent=car; R.stackPos=new THREE.Vector3(-4.05,0,1.65); R.bookPos=new THREE.Vector3(-3.45,0,1.75);
   return R;
 }
 
@@ -869,7 +936,7 @@ function openRoomScene(rid){
   HQ = !LOW || rid==='cottage'; leafMs=null;
   renderer.shadowMap.enabled=HQ; renderer.setPixelRatio(Math.min(devicePixelRatio, rid==='cottage'?2:(LOW?1.75:1.6)));
   if(composer) composer.setPixelRatio(renderer.getPixelRatio());
-  R = rid==='train'?buildTrain():buildCottage(); R.id=rid; FS=R.fs; renderTeaCount();
+  R = rid==='train'?buildTrain():buildCottage(); R.id=rid; FS=R.fs; renderTeaCount(); updateStacks();
   if(renderPass) renderPass.scene=R.scene;
   camGoal.target.copy(R.cam.target); camGoal.zoom=1; ctr.target.copy(R.cam.target); cam.zoom=1; cam.position.set(12,10.5,12).add(R.cam.target).sub(new THREE.Vector3(0,1.1,0)); ctr.update();
   resize(); applyPhaseNow(); applyTier();
@@ -890,7 +957,7 @@ function syncAvatars(){
     let av=avatars.get(key);
     if(!av || av.userData.sig!==sig){ if(av){ av.parent.remove(av); } av=buildAnimal(pr); av.userData.sig=sig; avatars.set(key,av); R.avatarParent.add(av); av.userData.hit.userData.uid=pr.uid; av.userData.hit.userData.key=key; }
     const s=R.seats[seat]; av.position.set(s.x,0,s.z); av.rotation.y=s.ry; av.userData.a.position.set(0,s.y,0.08);
-    av.userData.paused=!pr.reading; av.userData.seat=seat; av.userData.nick=pr.nick; av.userData.isMe=!!(p.isMe&&p.sameTab)||(pr.uid&&pr.uid===S.uid);
+    av.userData.paused=!pr.reading; av.userData.key=key; av.userData.seat=seat; av.userData.nick=pr.nick; av.userData.isMe=!!(p.isMe&&p.sameTab)||(pr.uid&&pr.uid===S.uid);
   }
   for(const [k,av] of avatars){ if(!seen.has(k)){ av.parent.remove(av); avatars.delete(k); } }
   syncStaff();
@@ -899,7 +966,8 @@ function syncAvatars(){
   for(const av of avatars.values()){ const s=R.seats[av.userData.seat]; if(s) R.tables[s.table].on = Math.max(R.tables[s.table].on, av.userData.paused?0.45:1); }
   /* tags */
   const want=new Map();
-  for(const [k,av] of avatars) want.set('a:'+k,{text:av.userData.nick||'旅人',cls:'tag'+(av.userData.isMe?' me':'')+(av.userData.paused?' paused':''),obj:av,dy:2.6});
+  for(const [k,av] of avatars){ want.set('a:'+k,{text:av.userData.nick||'旅人',cls:'tag'+(av.userData.isMe?' me':'')+(av.userData.paused?' paused':''),obj:av,dy:2.6}); want.set('e:'+k,{text:'',cls:'bubble off',obj:av,dy:3.05,bubble:true}); }
+  if(R.stackTag) want.set('stack',{text:R.stackTag,cls:'tag stack',pos:R.stackTagPos,parent:R.stackParent});
   for(const [k,av] of staffAvs){ want.set('t:'+k,{text:R.staffName+'・'+(av.userData.nick||'站長'),cls:'tag staff',obj:av,dy:2.25}); want.set('b:'+k,{text:'',cls:'bubble',obj:av,dy:2.75,bubble:true}); }
   R.seats.forEach((s,i)=>{ if(!s.taken) want.set('s:'+i,{text:'空位',cls:'tag empty',pos:new THREE.Vector3(s.x,1.5,s.z),parent:s.parent}); });
   for(const [k,el] of tagEls){ if(!want.has(k)){ el.remove(); tagEls.delete(k); } }
@@ -962,6 +1030,79 @@ function loop(){
   for(const el of tagEls.values()){ const w=el._w; if(!w) continue;
     if(w.obj){ w.obj.getWorldPosition(tv); tv.y+=w.dy*(w.obj.parent===R.scene?1:1); } else { tv.copy(w.pos); if(w.parent&&w.parent!==R.scene) w.parent.localToWorld(tv); }
     tv.project(cam); el.style.left=((tv.x+1)/2*W)+'px'; el.style.top=((1-tv.y)/2*H)+'px'; el.style.display=(tv.z>1||tv.z<-1)?'none':''; }
+}
+
+/* ================= emotes ================= */
+const EMOTES=[['wave','揮揮手'],['stretch','伸懶腰'],['doze','打瞌睡'],['tea','喝口茶'],['mark','畫重點']];
+let lastEmote=0;
+$('btnEmote').onclick=()=>{ if(S.staff){ toast('上工中，下工回座位才能做動作'); return; } if(S.seat==null){ toast('先坐下來再做動作'); return; }
+  const box=$('emoteActs'); box.innerHTML=''; EMOTES.forEach(([k,l])=>{ const b=document.createElement('button'); b.type='button'; b.textContent=l; b.onclick=()=>doEmote(k); box.append(b); }); $('vEmote').hidden=false; };
+$('xEmote').onclick=()=>$('vEmote').hidden=true;
+function doEmote(act){ $('vEmote').hidden=true; if(Date.now()-lastEmote<1500) return; lastEmote=Date.now(); onEmote({uid:S.uid,act}); if(chan&&chanReady) chan.send({type:'broadcast',event:'emote',payload:{uid:S.uid,act,room:R?.id}}).catch(()=>{}); }
+function onEmote(d){ if(!R||!d||!EMOTES.some(e=>e[0]===d.act)) return; if(d.room&&d.room!==R.id) return; const av=findAvatar(String(d.uid||'')); if(av) av.userData.emote={act:d.act,t0:performance.now()}; }
+
+/* ================= reading log (private) ================= */
+const LOG={items:[],tab:'all',kind:'paper',editing:null,delArm:null};
+async function loadLog(){
+  if(sb&&S.uid){ const {data,error}=await sb.from('readings').select('id,kind,title,authors,year,note,tags,link,created_at').order('created_at',{ascending:false}).limit(500); if(!error&&data){ LOG.items=data; LOG.remote=true; } else if(error){ LOG.remote=false; LOG.items=store.get('mmd.log',[]); } }
+  else LOG.items=store.get('mmd.log',[]);
+  renderLog();
+}
+function renderLogTabs(){ const t=$('logTabs'); t.innerHTML=''; t.className='btnrow seg'; [['all','全部'],['paper','文獻'],['book','書']].forEach(([k,l])=>{ const n=k==='all'?LOG.items.length:LOG.items.filter(i=>i.kind===k).length; const b=document.createElement('button'); b.type='button'; b.className='btn'+(LOG.tab===k?' on':''); b.textContent=l+' '+n; b.onclick=()=>{ LOG.tab=k; renderLog(); }; t.append(b); }); }
+function renderLogKind(){ const t=$('logKind'); t.innerHTML=''; t.className='btnrow seg'; [['paper','文獻'],['book','書']].forEach(([k,l])=>{ const b=document.createElement('button'); b.type='button'; b.className='btn'+(LOG.kind===k?' on':''); b.textContent=l; b.onclick=()=>{ LOG.kind=k; renderLogKind(); }; t.append(b); }); }
+function renderLog(){
+  renderLogTabs(); const q=$('logSearch').value.trim().toLowerCase(); const L=$('logList'); L.innerHTML='';
+  const items=LOG.items.filter(i=>(LOG.tab==='all'||i.kind===LOG.tab)&&(!q||[i.title,i.authors,i.tags,i.note].join(' ').toLowerCase().includes(q)));
+  if(!items.length){ const p=document.createElement('p'); p.className='empty-note'; p.textContent=LOG.items.length?'找不到符合的紀錄。':'還沒有紀錄。讀完一篇文獻或一本書，按「新增一筆」記下重點吧。'; L.append(p); return; }
+  for(const i of items){ const c=document.createElement('article'); c.className='logcard';
+    const k=document.createElement('span'); k.className='k'; const dt=new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',month:'numeric',day:'numeric'}).format(new Date(i.created_at||Date.now())); k.textContent=(i.kind==='book'?'書':'文獻')+'・'+dt; c.append(k);
+    const ti=document.createElement('div'); ti.className='ti'; ti.textContent=i.title; c.append(ti);
+    const meta=[i.authors,i.year,i.tags].filter(Boolean).join('・'); if(meta){ const m=document.createElement('div'); m.className='me'; m.textContent=meta; c.append(m); }
+    if(i.note){ const n=document.createElement('div'); n.className='no'; n.textContent=i.note; c.append(n); }
+    if(i.link){ const href=/^https?:\/\//i.test(i.link)?i.link:(/^10\./.test(i.link)?'https://doi.org/'+i.link:null); if(href){ const a=document.createElement('a'); a.href=href; a.target='_blank'; a.rel='noopener'; a.textContent=i.link; c.append(a); } }
+    const ops=document.createElement('div'); ops.className='ops';
+    const e=document.createElement('button'); e.type='button'; e.textContent='編輯'; e.onclick=()=>openLogForm(i); ops.append(e);
+    const d=document.createElement('button'); d.type='button'; d.textContent=LOG.delArm===i.id?'再按一次刪除':'刪除'; d.onclick=()=>{ if(LOG.delArm!==i.id){ LOG.delArm=i.id; renderLog(); return; } LOG.delArm=null; delLog(i.id); }; ops.append(d);
+    c.append(ops); L.append(c); }
+}
+function openLogForm(item){ LOG.editing=item||null; LOG.kind=item?.kind||LOG.kind||'paper'; renderLogKind();
+  $('logTitle').value=item?.title||''; $('logAuthors').value=item?.authors||''; $('logYear').value=item?.year||''; $('logNote').value=item?.note||''; $('logTags').value=item?.tags||''; $('logLink').value=item?.link||''; $('logCount').textContent=$('logNote').value.length; $('logErr').textContent='';
+  $('fLog').hidden=false; $('logNew').hidden=true; $('logTitle').focus(); }
+function closeLogForm(){ $('fLog').hidden=true; $('logNew').hidden=false; LOG.editing=null; }
+$('btnLog').onclick=$('btnLogR').onclick=()=>{ $('vLog').hidden=false; closeLogForm(); loadLog(); };
+$('xLog').onclick=()=>$('vLog').hidden=true; $('logNew').onclick=()=>openLogForm(null); $('logCancel').onclick=closeLogForm;
+$('logSearch').oninput=renderLog; $('logNote').oninput=()=>{ $('logCount').textContent=$('logNote').value.length; }; $('logTitle').oninput=()=>$('logErr').textContent='';
+$('fLog').onsubmit=async e=>{
+  e.preventDefault(); const title=$('logTitle').value.trim(); if(!title){ $('logErr').textContent='請填篇名或書名'; $('logTitle').focus(); return; }
+  const yr=parseInt($('logYear').value,10);
+  const row={kind:LOG.kind,title:title.slice(0,150),authors:$('logAuthors').value.trim().slice(0,100)||null,year:(yr>=1800&&yr<=2100)?yr:null,note:$('logNote').value.trim().slice(0,50)||null,tags:$('logTags').value.trim().slice(0,60)||null,link:$('logLink').value.trim().slice(0,400)||null};
+  if(LOG.remote&&sb){ const q=LOG.editing?sb.from('readings').update(row).eq('id',LOG.editing.id):sb.from('readings').insert(row); const {error}=await q; if(error){ $('logErr').textContent='沒存成功，請稍後再試'; return; } }
+  else { const list=store.get('mmd.log',[]); if(LOG.editing){ const i=list.findIndex(x=>x.id===LOG.editing.id); if(i>=0) list[i]={...list[i],...row}; } else list.unshift({id:'l'+Date.now(),created_at:new Date().toISOString(),...row}); store.set('mmd.log',list); }
+  const wasNew=!LOG.editing; closeLogForm(); await loadLog(); if(wasNew){ toast('記下來了，文件架又高了一點'); loadCounts(); } else toast('已更新');
+};
+async function delLog(id){ if(LOG.remote&&sb){ const {error}=await sb.from('readings').delete().eq('id',id); if(error){ toast('刪除失敗，請稍後再試'); return; } } else { store.set('mmd.log',store.get('mmd.log',[]).filter(x=>x.id!==id)); } loadLog(); loadCounts(); }
+
+/* ================= shelf counts ================= */
+S.readCounts={books:0,papers:0};
+async function loadCounts(){
+  if(sb){ const {data,error}=await sb.rpc('station_read_counts',{p_ym:ym()}); if(!error&&data) S.readCounts={books:+data.books||0,papers:+data.papers||0}; }
+  else { const k=ym(); const l=store.get('mmd.log',[]).filter(x=>String(x.created_at||'').slice(0,7)===k); S.readCounts={books:l.filter(x=>x.kind==='book').length,papers:l.filter(x=>x.kind==='paper').length}; }
+  updateStacks(); renderLobby();
+}
+setInterval(()=>{ if(S.room) loadCounts(); },120000);
+function updateStacks(){
+  if(!R||!R.stackParent) return; if(R.stackG){ R.stackParent.remove(R.stackG); disposeScene(R.stackG); }
+  const g=new THREE.Group(); R.stackParent.add(g); R.stackG=g; const {books,papers}=S.readCounts;
+  const FC=[0xd8c0a4,0xc98f8a,0x8ea3b8,0x8a9a72,0xe0cdb5,0xb77b72]; const NC=[0xf3d9b8,0xf2c6c2,0xd9e2c4,0xefe2a8];
+  const rack=new THREE.Group(); rack.position.copy(R.stackPos); g.add(rack);
+  add(RB(0.72,0.42,0.52,0.04),M(0x4a312a,0.6),0,0.21,0,rack);
+  const np=Math.min(papers,36); let y=0.43;
+  for(let i=0;i<np;i++){ const h=0.04; const f=add(RB(0.5,h,0.36,0.01,2),M(FC[i%FC.length],0.8),((i*37)%7-3)*0.006,y+h/2,((i*53)%5-2)*0.006,rack); f.rotation.y=((i*29)%9-4)*0.03;
+    if(i%3===0) add(new THREE.BoxGeometry(0.07,0.005,0.07),M(NC[i%NC.length],0.9),0.2,y+h+0.003,0.12,rack,false); y+=h+0.004; }
+  const pile=new THREE.Group(); pile.position.copy(R.bookPos); g.add(pile); const nb=Math.min(books,14); let by=0;
+  for(let i=0;i<nb;i++){ const h=0.08+((i*17)%5)*0.01; const b=add(new THREE.BoxGeometry(0.5,h,0.36),M(BOOKC[i%BOOKC.length],0.75),0,by+h/2,0,pile); b.rotation.y=((i*31)%9-4)*0.07; by+=h; }
+  R.stackTag=(papers||books)?('本月共讀 '+papers+' 篇・'+books+' 本'):'文件架：還沒有人登記';
+  R.stackTagPos=new THREE.Vector3(R.stackPos.x,y+0.35,R.stackPos.z); syncAvatars();
 }
 
 /* ================= staff (waiter / conductor) ================= */
@@ -1074,7 +1215,7 @@ async function enterRoom(rid){
   S.room=rid; openRoomScene(rid);
   S.seat=freeSeat(store.get('mmd.seat.'+rid,null)); S.reading=true; S.readStart=Date.now(); S.readAcc=0; creditedMin=0; S.lookMe=false; $('btnMe').textContent='看看我'; camGoal.active=false; $('btnMe').classList.remove('on');
   pushPresence(); syncAvatars(); renderRead(); audio.update(); keepAwake(true); showRoomNote();
-  $('rHint').hidden=false; setTimeout(()=>{$('rHint').hidden=true;},7000);
+  $('rHint').hidden=false; loadCounts(); setTimeout(()=>{$('rHint').hidden=true;},7000);
 }
 function leaveRoom(){
   flushPartial();
@@ -1089,14 +1230,15 @@ $('go-cottage').onclick=()=>enterRoom('cottage'); $('go-train').onclick=()=>ente
 function renderRead(){
   const pill=$('readPill'); pill.classList.toggle('off',!S.reading);
   if(S.staff){ $('rLabel').textContent=(R?.staffName||'站長')+'上工中'; $('btnRead').textContent='下工回座位'; }
-  else { $('rLabel').textContent=S.reading?'閱讀中':'已暫停'; $('btnRead').textContent=S.reading?'停止閱讀':'繼續閱讀'; }
+  else { $('rLabel').textContent=S.reading?'閱讀中':'休息中'; $('btnRead').textContent=S.reading?'休息一下':'回來讀書'; }
   const secs=Math.floor((S.readAcc+(S.reading?Date.now()-S.readStart:0))/1000); $('rTimer').textContent=fmt2(Math.floor(secs/3600))+':'+fmt2(Math.floor(secs/60)%60)+':'+fmt2(secs%60);
 }
 let creditedMin=0;
-$('btnRead').onclick=()=>{ if(S.staff){ offDuty(); return; } if(S.reading){ S.readAcc+=Date.now()-S.readStart; S.reading=false; } else { S.readStart=Date.now(); S.reading=true; } pushPresence(); syncAvatars(); renderRead(); keepAwake(S.reading); };
+$('btnRead').onclick=()=>{ if(S.staff){ offDuty(); return; } if(S.reading){ S.readAcc+=Date.now()-S.readStart; S.reading=false; S.restAt=Date.now(); S.restReminded=false; toast('休息一下，喝口茶吧'); } else { S.readStart=Date.now(); S.reading=true; S.restAt=0; } pushPresence(); syncAvatars(); renderRead(); keepAwake(S.reading); };
 function sessionMs(){ return S.readAcc+(S.reading?Date.now()-S.readStart:0); }
 setInterval(()=>{
   renderClock();
+  if(S.room&&!S.reading&&!S.staff&&S.restAt&&!S.restReminded&&Date.now()-S.restAt>600000){ S.restReminded=true; ding(); toast('休息 10 分鐘囉，要回來讀書嗎？'); }
   if(S.room){ renderRead(); const m=Math.floor(sessionMs()/60000); if(m>creditedMin){ const add=m-creditedMin; creditedMin=m; creditMinutes(add); } }
   if(R && currentPhase()!==lastPhase) applyPhaseNow();
 },1000);
@@ -1430,7 +1572,7 @@ if(!S.profile) setTimeout(()=>{ if(!S.profile && $('vCheck').hidden) openCheck()
   await loadProfile();
   if(!S.hasRemote && hadLocal) saveProfile();
   if(S.profile && !$('vCheck').hidden && !$('nick').value) $('vCheck').hidden=true;
-  await Promise.all([loadStats(),loadSettings(),loadNotes()]);
+  await Promise.all([loadStats(),loadSettings(),loadNotes(),loadCounts()]);
   renderLobby(); renderMyCard();
   sb.channel('station-db')
     .on('postgres_changes',{event:'*',schema:'public',table:'station_stats'},()=>loadStats())
@@ -1441,6 +1583,7 @@ if(!S.profile) setTimeout(()=>{ if(!S.profile && $('vCheck').hidden) openCheck()
   chan.on('presence',{event:'sync'},()=>{ buildPeers(); renderLobby(); if(R){ syncAvatars(); resolveSeat(); } });
   chan.on('broadcast',{event:'tea'},({payload})=>onTea({data:payload,sameTab:false,isMe:false}));
   chan.on('broadcast',{event:'staff'},({payload})=>onStaffAct(payload));
+  chan.on('broadcast',{event:'emote'},({payload})=>onEmote(payload));
   chan.subscribe(st=>{
     if(st==='SUBSCRIBED'){ chanReady=true; pushPresence(); $('syncLine').textContent='已連線，大家的位子會即時同步。'; }
     else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED'){ chanReady=false; $('syncLine').textContent='即時連線中斷，重新連線中…'; }
