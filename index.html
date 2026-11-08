@@ -257,7 +257,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 21:00</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 22:00</p>
     </div>
   </section>
 
@@ -1238,7 +1238,7 @@ function leaveRoom(){
   if(R){ disposeScene(R.scene); R=null; } avatars.clear(); staffAvs.clear(); staffOv.clear(); $('labels').innerHTML=''; tagEls.clear();
   audio.update(); renderLobby();
 }
-$('go-cottage').onclick=()=>enterRoom('cottage'); $('go-train').onclick=()=>enterRoom('train'); $('btnLeave').onclick=leaveRoom;
+$('go-cottage').onclick=()=>{ audio.wake(); enterRoom('cottage'); }; $('go-train').onclick=()=>{ audio.wake(); enterRoom('train'); }; $('btnLeave').onclick=leaveRoom;
 
 /* reading timer */
 function renderRead(){
@@ -1342,8 +1342,14 @@ const audio=(()=>{
   function burst(freq,dur,vol,type='bandpass'){ if(!ctx) return; const s=ctx.createBufferSource(); s.buffer=noiseBuf; const f=ctx.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=1.2; const g=ctx.createGain(); const t=ctx.currentTime; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); s.connect(f).connect(g).connect(master); s.start(t,Math.random()); s.stop(t+dur+0.05); }
   function chirp(){ if(!ctx) return; const o=ctx.createOscillator(), g=ctx.createGain(); const t=ctx.currentTime; const f0=2400+Math.random()*1200; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f0*1.5,t+0.09); o.frequency.exponentialRampToValueAtTime(f0*1.1,t+0.16);
     g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.05,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.18); o.connect(g).connect(master); o.start(t); o.stop(t+0.2); }
-  function init(){ if(ctx) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; ctx=new AC(); master=ctx.createGain(); master.gain.value=vN/100*0.9; master.connect(ctx.destination); noiseBuf=noiseBuffer();
-    bed('fire','bandpass',520,0.6,0.08); bed('rain','lowpass',1400,0.4,0.16); bed('rumble','lowpass',160,0.7,0.5); bed('hiss','highpass',3000,0.5,0.015); }
+  function unlockIOS(){
+    try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
+    try{ const sr=8000,n=sr/2,b=new ArrayBuffer(44+n*2),v=new DataView(b); const w=(o,t)=>{ for(let i=0;i<t.length;i++) v.setUint8(o+i,t.charCodeAt(i)); };
+      w(0,'RIFF'); v.setUint32(4,36+n*2,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,sr,true); v.setUint32(28,sr*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,n*2,true);
+      const el=new Audio(URL.createObjectURL(new Blob([b],{type:'audio/wav'}))); el.loop=true; el.setAttribute('playsinline',''); el.play().catch(()=>{}); window.__mmdSilent=el; }catch(e){}
+  }
+  function init(){ if(ctx){ if(ctx.state==='suspended') ctx.resume(); return; } unlockIOS(); const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; ctx=new AC(); master=ctx.createGain(); master.gain.value=vN/100*0.9; master.connect(ctx.destination); noiseBuf=noiseBuffer();
+    bed('fire','bandpass',520,0.6,0.08); bed('rain','bandpass',1600,0.45,0.42); bed('rain2','highpass',4500,0.4,0.06); bed('rumble','lowpass',160,0.7,0.5); bed('hiss','highpass',3000,0.5,0.015); }
   function scene(){ if(!ctx) return {}; const p=currentPhase(); const rid=S.room;
     const rp=store.get('mmd.rain','auto'); const autoRain=rid==='cottage'&&(p==='dusk'||p==='night'); const rain=rp==='on'||(rp==='auto'&&autoRain);
     if(rid==='cottage') return {fire:1,rain:rain?1:0,drops:rain,birds:!rain&&(p==='morning'||p==='afternoon'),crackle:true};
@@ -1354,9 +1360,9 @@ const audio=(()=>{
     if(!on||!ctx){ if(musicEl) musicEl.pause(); Object.values(layers).forEach(l=>l.g.gain.value=0); return; }
     if(ctx.state==='suspended') ctx.resume();
     const sc=scene(); const now=ctx.currentTime;
-    for(const [k,l] of Object.entries(layers)) l.g.gain.setTargetAtTime(sc[k]?l.target:0,now,0.8);
+    for(const [k,l] of Object.entries(layers)){ const want=k==='rain2'?sc.rain:sc[k]; l.g.gain.setTargetAtTime(want?l.target:0,now,0.8); }
     if(sc.crackle) timers.push(setInterval(()=>{ if(Math.random()<0.35) burst(1800+Math.random()*2500,0.04+Math.random()*0.05,0.12+Math.random()*0.15,'highpass'); },130));
-    if(sc.drops){ timers.push(setInterval(()=>{ if(Math.random()<0.6) burst(3500+Math.random()*3500,0.015+Math.random()*0.02,0.03+Math.random()*0.05,'highpass'); },70)); timers.push(setInterval(()=>{ if(Math.random()<0.25) burst(700+Math.random()*500,0.06,0.06,'bandpass'); },400)); }
+    if(sc.drops){ timers.push(setInterval(()=>{ if(Math.random()<0.6) burst(2500+Math.random()*4000,0.015+Math.random()*0.025,0.07+Math.random()*0.1,'highpass'); },60)); timers.push(setInterval(()=>{ if(Math.random()<0.25) burst(700+Math.random()*500,0.06,0.06,'bandpass'); },400)); }
     if(sc.birds) timers.push(setInterval(()=>{ if(Math.random()<0.3){ chirp(); setTimeout(chirp,170); } },1800));
     if(sc.clack){ let i=0; timers.push(setInterval(()=>{ i++; if(i%5===0){ burst(900,0.08,0.35); setTimeout(()=>burst(900,0.08,0.3),140); } },220)); }
     music();
@@ -1369,6 +1375,7 @@ const audio=(()=>{
     musicEl.volume=vM/100; musicEl.play().catch(()=>{ $('sndInfo').textContent='背景音樂這台裝置播不了，建議站長換成 mp3 或 m4a 格式。'; });
   }
   function setOn(v){ on=v; store.set('mmd.sound',v); if(v) init(); update(); }
+  function wake(){ if(on) init(); }
   let lastFlip=0;
   function flip(){
     if(!on||!ctx||!store.get('mmd.page',true)) return; const nowMs=performance.now(); if(nowMs-lastFlip<1100) return; lastFlip=nowMs;
@@ -1380,14 +1387,14 @@ const audio=(()=>{
   }
   function setVN(v){ vN=v; store.set('mmd.vN',v); if(master) master.gain.value=v/100*0.9; }
   function setVM(v){ vM=v; store.set('mmd.vM',v); if(musicEl) musicEl.volume=v/100; }
-  return { update, setOn, setVN, setVM, flip, get on(){return on;}, get vN(){return vN;}, get vM(){return vM;}, music };
+  return { update, setOn, setVN, setVM, flip, wake, get on(){return on;}, get vN(){return vN;}, get vM(){return vM;}, music };
 })();
 function renderSound(){ const rp=store.get('mmd.rain','auto'); $('rainToggle').textContent={auto:'自動（夜晚的小屋下雨）',on:'一直下雨',off:'不要雨聲'}[rp]; $('pageToggle').textContent=store.get('mmd.page',true)?'開啟':'關閉'; $('sndToggle').textContent=audio.on?'關閉':'開啟'; $('btnSound').classList.toggle('on',audio.on); $('volNoise').value=audio.vN; $('oNoise').textContent=audio.vN; $('volMusic').value=audio.vM; $('oMusic').textContent=audio.vM;
   $('sndInfo').textContent=S.settings.musicUrl?('白噪音會跟著房間和時段變化。背景音樂：'+(S.settings.musicName||'站長上傳的音樂')):'白噪音會跟著房間和時段變化。站長還沒放背景音樂。'; }
 $('btnSound').onclick=()=>{ renderSound(); $('vSound').hidden=false; };
 $('xSound').onclick=()=>$('vSound').hidden=true;
 $('sndToggle').onclick=()=>{ audio.setOn(!audio.on); renderSound(); };
-$('rainToggle').onclick=()=>{ const o=['auto','on','off']; const rp=store.get('mmd.rain','auto'); store.set('mmd.rain',o[(o.indexOf(rp)+1)%3]); renderSound(); audio.update(); };
+$('rainToggle').onclick=()=>{ audio.wake(); const o=['auto','on','off']; const rp=store.get('mmd.rain','auto'); store.set('mmd.rain',o[(o.indexOf(rp)+1)%3]); renderSound(); audio.update(); };
 $('pageToggle').onclick=()=>{ store.set('mmd.page',!store.get('mmd.page',true)); renderSound(); };
 $('volNoise').oninput=e=>{ audio.setVN(+e.target.value); $('oNoise').textContent=e.target.value; };
 $('volMusic').oninput=e=>{ audio.setVM(+e.target.value); $('oMusic').textContent=e.target.value; };
