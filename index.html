@@ -270,7 +270,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 23:27</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 23:30</p>
     </div>
   </section>
 
@@ -699,16 +699,18 @@ function giftSparkle(u,e){
   const k=Math.max(0,e-0.3); u.spk.children.forEach(sp=>{ const v=sp.userData.v; sp.position.set(v.x*k,v.y*k-0.35*k*k,v.z*k); const o=Math.max(0,1-k/2.4); sp.material.opacity=o*(0.6+0.4*Math.sin(e*20+v.x*9)); sp.scale.setScalar(0.12+0.1*o); sp.material.rotation=e*2; });
 }
 function placeTwinkle(sp){ const an=Math.random()*Math.PI*2, y=Math.random()<0.5?0.17:Math.random()*0.08; sp.position.set(Math.cos(an)*0.17,y,Math.sin(an)*0.17); }
-let wingGeo=null, wingMat=null;
+let wingGeo=null, wingMat=null, wingLine=null;
 function addWings(a,staff){
   if(!wingGeo){ const sh=new THREE.Shape(); sh.moveTo(0,0.02); sh.bezierCurveTo(0.0,0.12,0.12,0.19,0.27,0.15); sh.bezierCurveTo(0.31,0.13,0.3,0.06,0.25,0.03);
     sh.quadraticCurveTo(0.235,-0.04,0.18,-0.02); sh.quadraticCurveTo(0.15,-0.08,0.1,-0.04); sh.quadraticCurveTo(0.05,-0.08,0.02,-0.03); sh.quadraticCurveTo(-0.01,-0.01,0,0.02);
     wingGeo=new THREE.ExtrudeGeometry(sh,{depth:0.02,bevelEnabled:true,bevelThickness:0.04,bevelSize:0.028,bevelSegments:HQ?8:4,curveSegments:HQ?28:14}); wingGeo.translate(0,0,-0.01);
-    wingMat=HQ?new THREE.MeshPhysicalMaterial({color:0xfffdf8,roughness:0.7,sheen:1,sheenRoughness:0.4,sheenColor:new THREE.Color(0xfff2dc),emissive:0x2e281e,side:THREE.DoubleSide})
-              :new THREE.MeshStandardMaterial({color:0xfffdf8,roughness:0.8,emissive:0x2e281e,side:THREE.DoubleSide}); }
+    wingMat=HQ?new THREE.MeshPhysicalMaterial({color:0xf6f9ff,roughness:0.65,sheen:1,sheenRoughness:0.35,sheenColor:new THREE.Color(0xffffff),emissive:0x5a5e6a,side:THREE.DoubleSide})
+              :new THREE.MeshStandardMaterial({color:0xf6f9ff,roughness:0.75,emissive:0x5a5e6a,side:THREE.DoubleSide});
+    wingLine=new THREE.MeshStandardMaterial({color:0xd8dfee,roughness:0.8,emissive:0x2a2e38}); }
   return [-1,1].map(s=>{ const root=new THREE.Group(); root.position.set(s*(staff?0.085:0.12),staff?0.52:0.55,staff?-0.29:-0.25); a.add(root); const piv=new THREE.Group(); root.add(piv);
     const k=staff?1:1.45; const g=new THREE.Group(); g.scale.set(s*k,k,k); piv.add(g); add(wingGeo,wingMat,0,0,0,g,false);
     [[0.215,-0.01,0.045],[0.14,-0.035,0.05],[0.065,-0.035,0.045],[0.24,0.09,0.05],[0.16,0.13,0.055],[0.07,0.1,0.05]].forEach(([x,y,rr])=>add(SPH(rr,HQ?14:8),wingMat,x,y,0,g,false).scale.set(1,1,0.7));
+    [-1,1].forEach(f=>[[0.1,0.03,0.09],[0.175,0.045,0.08]].forEach(([x,y,l])=>{ const c=add(new THREE.CapsuleGeometry(0.007,l,3,6),wingLine,x,y,f*0.052,g,false); c.rotation.z=-0.95; }));
     return {s,piv,by:staff?0.55:-0.12,bz:staff?0.22:0.32}; });
 }
 function addPearls(a,portrait,staff){
