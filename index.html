@@ -270,7 +270,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 23:05</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 23:11</p>
     </div>
   </section>
 
@@ -504,7 +504,7 @@ const ACCS = [{h:5,zh:'毛帽'},{h:10,zh:'圓眼鏡'},{h:20,zh:'小花'}];
 const XMAS_ITEMS = [
   {k:'crown',zh:'閃亮小皇冠',cost:6,d:'金色皇冠鑲粉藍紫寶石，尖端是小珍珠，會一閃一閃'},
   {k:'pearl',zh:'雙層珍珠項鍊',cost:9,d:'兩圈滿滿的珍珠，中間一顆粉紅寶石'},
-  {k:'wings',zh:'天使小翅膀',cost:12,d:'造型修改中，敬請期待',soon:true},
+  {k:'wings',zh:'雲朵小天使翅膀',cost:12,d:'蓬蓬的雲朵小翅膀，伸懶腰、揮手時會拍一拍'},
   {k:'snow',zh:'雪花特效',cost:20,d:'座位上方飄小雪，敬請期待',soon:true}];
 function xmasOn(){ const t=taipeiNow(); const md=t.m*100+t.d; return (md>=1201&&md<=1225)||!!S.settings.xmasEarly; }
 const NOTE_COLORS = ['#f3d9b8','#f2c6c2','#d9e2c4','#cfdbe6','#efe2a8','#e2d6f0','#cdb8e3'];
@@ -660,6 +660,7 @@ function add(geo,mat,x,y,z,parent,cast=true){ const o=new THREE.Mesh(geo,mat); o
 let SHMAP = 1024;
 
 /* ---------- avatar ---------- */
+let padMat=null; const PADM=()=>padMat||(padMat=FAB(0xe9b7b3,0xffe8ec));
 const DARK=M(0x2a1a16,0.4), BLUSH=M(0xe79a94,1,{transparent:true,opacity:0.7}), PAGE=M(0xf4ead8,0.9);
 const BOOKC=[0x8a4e45,0x6b7a5e,0xc49a6c,0x5e4a5a,0xa8705e,0x3f5560];
 /* ---------- 聖誕收藏：皇冠、珍珠 ---------- */
@@ -698,6 +699,18 @@ function giftSparkle(u,e){
   const k=Math.max(0,e-0.3); u.spk.children.forEach(sp=>{ const v=sp.userData.v; sp.position.set(v.x*k,v.y*k-0.35*k*k,v.z*k); const o=Math.max(0,1-k/2.4); sp.material.opacity=o*(0.6+0.4*Math.sin(e*20+v.x*9)); sp.scale.setScalar(0.12+0.1*o); sp.material.rotation=e*2; });
 }
 function placeTwinkle(sp){ const an=Math.random()*Math.PI*2, y=Math.random()<0.5?0.17:Math.random()*0.08; sp.position.set(Math.cos(an)*0.17,y,Math.sin(an)*0.17); }
+let wingGeo=null, wingMat=null;
+function addWings(a,staff){
+  if(!wingGeo){ const sh=new THREE.Shape(); sh.moveTo(0,0.02); sh.bezierCurveTo(0.0,0.12,0.12,0.19,0.27,0.15); sh.bezierCurveTo(0.31,0.13,0.3,0.06,0.25,0.03);
+    sh.quadraticCurveTo(0.235,-0.04,0.18,-0.02); sh.quadraticCurveTo(0.15,-0.08,0.1,-0.04); sh.quadraticCurveTo(0.05,-0.08,0.02,-0.03); sh.quadraticCurveTo(-0.01,-0.01,0,0.02);
+    wingGeo=new THREE.ExtrudeGeometry(sh,{depth:0.02,bevelEnabled:true,bevelThickness:0.04,bevelSize:0.028,bevelSegments:HQ?8:4,curveSegments:HQ?28:14}); wingGeo.translate(0,0,-0.01);
+    wingMat=HQ?new THREE.MeshPhysicalMaterial({color:0xfffdf8,roughness:0.7,sheen:1,sheenRoughness:0.4,sheenColor:new THREE.Color(0xfff2dc),emissive:0x2e281e,side:THREE.DoubleSide})
+              :new THREE.MeshStandardMaterial({color:0xfffdf8,roughness:0.8,emissive:0x2e281e,side:THREE.DoubleSide}); }
+  return [-1,1].map(s=>{ const root=new THREE.Group(); root.position.set(s*0.085,staff?0.52:0.5,staff?-0.29:-0.31); a.add(root); const piv=new THREE.Group(); root.add(piv);
+    const g=new THREE.Group(); g.scale.set(s,1,1); piv.add(g); add(wingGeo,wingMat,0,0,0,g,false);
+    [[0.215,-0.01,0.045],[0.14,-0.035,0.05],[0.065,-0.035,0.045],[0.24,0.09,0.05],[0.16,0.13,0.055],[0.07,0.1,0.05]].forEach(([x,y,rr])=>add(SPH(rr,HQ?14:8),wingMat,x,y,0,g,false).scale.set(1,1,0.7));
+    return {s,piv}; });
+}
 function addPearls(a,portrait,staff){
   const J=jewels(portrait); const g=new THREE.Group(); a.add(g); const geo=SPH(0.028,portrait||HQ?14:8); const m4=new THREE.Matrix4();
   const y0=staff?0.68:0.66;
@@ -711,16 +724,18 @@ function buildAnimal(spec){
   const an=ANIMALS.find(a=>a.k===spec.animal)||ANIMALS[0];
   const sc=(SCARVES.find(s=>s.k===spec.scarf)||SCARVES[0]).c;
   const root=new THREE.Group(); const a=new THREE.Group(); root.add(a);
-  const fur=FAB(an.c,0xfff0e6), belly=FAB(an.b,0xffffff), sw=FAB(0xffffff,0xfff0e6,{map:stripeTex(sc,'#f3e9dc')}), pants=FAB(an.p,0xf0e0d0), scarfM=FAB(new THREE.Color(sc).getHex(),0xffffff);
+  const fur=FAB(an.c,0xfff0e6), belly=FAB(an.b,0xffffff), sw=FAB(0xffffff,0xfff0e6,{map:stripeTex(sc,'#f3e9dc')}), scarfM=FAB(new THREE.Color(sc).getHex(),0xffffff);
   const staff=spec.staff||null; const legs=[]; const extras={}; const ears=[];
   let torso;
   if(!staff){
   torso=add(SPH(0.38,28),sw,0,0.38,0,a); torso.scale.set(1,1.12,0.88);
-  const scarf=add(new THREE.TorusGeometry(0.22,0.075,10,24),scarfM,0,0.76,0,a); scarf.rotation.x=Math.PI/2;
-  add(RB(0.14,0.3,0.06,0.03,2),scarfM,0.14,0.6,0.27,a).rotation.z=0.15;
+  const scarf=add(new THREE.TorusGeometry(0.175,0.062,12,32),scarfM,0,0.75,0,a); scarf.rotation.x=Math.PI/2+0.22; scarf.scale.set(1.05,0.92,1);
+  const padM=PADM();
   [-1,1].forEach(s=>{
-    const l=add(new THREE.CapsuleGeometry(0.12,0.24,6,14),pants,s*0.16,0.1,0.24,a); l.rotation.x=Math.PI/2;
-    const f=add(SPH(0.12,14),fur,s*0.16,0.1,0.46,a); f.scale.set(1,0.9,1.2);
+    const th=add(SPH(0.135,16),fur,s*0.15,0.09,0.15,a); th.scale.set(1,0.78,1.35);
+    const f=add(SPH(0.105,16),fur,s*0.16,0.08,0.34,a); f.scale.set(1,1.05,0.75);
+    add(SPH(0.05,10),padM,s*0.16,0.07,0.415,a,false).scale.set(1,1,0.3);
+    if(HQ) [-1,0,1].forEach(q=>add(SPH(0.018,8),padM,s*0.16+q*0.035,0.135-Math.abs(q)*0.008,0.4,a,false).scale.set(1,1,0.4));
     const ag=new THREE.Group(); ag.position.set(s*0.25,0.6,0.03); ag.rotation.set(-1.2,0,0); a.add(ag);
     add(SPH(0.1,16),sw,0,0,0,ag);
     add(new THREE.CapsuleGeometry(0.088,0.2,6,14),sw,0,-0.16,0,ag);
@@ -794,6 +809,7 @@ function buildAnimal(spec){
   if(acc>=3){ const fl=new THREE.Group(); fl.position.set(-0.28,0.2,0.16); head.add(fl); for(let i=0;i<5;i++){ const a2=i/5*Math.PI*2; add(SPH(0.04,8),M(0xf6d0d4,0.8),Math.cos(a2)*0.05,Math.sin(a2)*0.05,0,fl,false); } add(SPH(0.03,8),M(0xf0c65a,0.6),0,0,0.02,fl,false); }
   if(crownOn) extras.twk=addCrown(head,!!spec.portrait);
   if(wear.includes('pearl')) addPearls(a,!!spec.portrait,!!staff);
+  if(wear.includes('wings')) extras.wings=addWings(a,!!staff);
   const cup=new THREE.Group(); cup.position.set(0,1.75,0); cup.visible=false; root.add(cup);
   add(new THREE.CylinderGeometry(0.1,0.08,0.14,16),M(0xf5ead8,0.4),0,0,0,cup,false);
   add(new THREE.CylinderGeometry(0.085,0.085,0.01,16),M(0xb98a62,0.4),0,0.065,0,cup,false);
@@ -813,6 +829,9 @@ function animateAvatar(av,t){
     u.ears.forEach((e,i)=>{ const sw=Math.sin(t*1.3+u.ph+e.s)*0.05; const flick=(i===((u.ph*10|0)%u.ears.length))?tw:0;
       e.g.rotation.x=e.bx+sw*0.6-flick*0.25; e.g.rotation.z=e.bz+sw-e.s*flick*0.18;
       if(e.tip){ e.tip.rotation.x=e.tx+Math.sin(t*1.7+u.ph+e.s*2)*0.12+flick*0.4; e.tip.rotation.z=e.tz+Math.sin(t*1.1+u.ph)*0.08; } }); }
+  if(u.wings){ const em=u.emote&&(u.emote.act==='stretch'||u.emote.act==='gift'||u.emote.act==='done'||u.emote.act==='wave'); const e=em?(performance.now()-u.emote.t0)/1000:0;
+    const flap=em&&e<3?Math.sin(e*14)*0.35*Math.min(1,e*3)*(e>2.4?Math.max(0,(3-e)/0.6):1):Math.sin(t*1.5+u.ph)*0.04;
+    u.wings.forEach(({s,piv})=>{ piv.rotation.y=s*(0.55+flap); piv.rotation.z=s*0.22; }); }
   if(u.twk) u.twk.forEach(sp=>{ const q=sp.userData; const k=(Math.sin(t*q.sp+q.ph)+1)/2, o=k**6; sp.material.opacity=o; sp.material.rotation=t*0.8+q.ph; sp.scale.setScalar(0.05+o*0.1); if(o<0.002&&Math.random()<0.05){ placeTwinkle(sp); q.ph=Math.random()*6; } });
   if(u.emote&&u.emote.act==='gift'){ const e=(performance.now()-u.emote.t0)/1000; if(e<3.4){ const k=Math.min(1,e*2)*(e>2.8?Math.max(0,1-(e-2.8)*2):1); u.a.rotation.y=e<2.2?Math.min(1,e/2.2)*Math.PI*2:0; u.a.position.y=(u.baseY??(u.baseY=u.a.position.y))+0.22*k; giftSparkle(u,e);
       if(u.key){ const el=tagEls.get('e:'+u.key); if(el){ el.textContent='✨ 新收藏！'; el.classList.remove('off'); } }
