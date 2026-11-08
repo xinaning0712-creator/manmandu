@@ -270,7 +270,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 23:30</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 23:32</p>
     </div>
   </section>
 
@@ -679,7 +679,7 @@ function jewels(portrait){
   return JW[k]={gold,pearl,pink:gem(0xf06f96),gems:[0xf08aa8,0xa9c8f0,0xc3a6ea,0xf08aa8,0xa9c8f0].map(gem),star};
 }
 function addCrown(head,portrait){
-  const J=jewels(portrait); const c=new THREE.Group(); c.position.set(0,0.345,0.15); c.rotation.x=-0.12; c.scale.setScalar(0.82); head.add(c);
+  const J=jewels(portrait); const c=new THREE.Group(); c.position.set(0,0.345,0.12); c.rotation.x=0.3; c.scale.setScalar(0.82); head.add(c);
   const band=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.17,0.075,32,1,true),J.gold); band.material=J.gold; c.add(band);
   const lid=add(new THREE.CircleGeometry(0.165,24),J.gold,0,-0.03,0,c,false); lid.rotation.x=-Math.PI/2;
   add(new THREE.TorusGeometry(0.17,0.012,6,32),J.gold,0,-0.037,0,c,false).rotation.x=Math.PI/2; add(new THREE.TorusGeometry(0.16,0.01,6,32),J.gold,0,0.037,0,c,false).rotation.x=Math.PI/2;
