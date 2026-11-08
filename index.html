@@ -270,7 +270,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 23:17</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 23:19</p>
     </div>
   </section>
 
@@ -712,9 +712,9 @@ function addWings(a,staff){
     return {s,piv}; });
 }
 function addPearls(a,portrait,staff){
-  const J=jewels(portrait); const g=new THREE.Group(); a.add(g); const geo=SPH(0.023,portrait||HQ?14:8); const m4=new THREE.Matrix4();
+  const J=jewels(portrait); const g=new THREE.Group(); a.add(g); const geo=SPH(0.025,portrait||HQ?12:8); const m4=new THREE.Matrix4();
   const y0=staff?0.68:0.66;
-  [[0.3,0.27,y0+0.01,0.06,24],[0.325,0.3,y0,0.17,30]].forEach(([rx,rz,y,drop,n])=>{ const im=new THREE.InstancedMesh(geo,J.pearl,n);
+  [[0.3,0.27,y0+0.01,0.06,38],[0.325,0.3,y0,0.17,44]].forEach(([rx,rz,y,drop,n])=>{ const im=new THREE.InstancedMesh(geo,J.pearl,n);
     for(let i=0;i<n;i++){ const t=i/n*Math.PI*2, f=Math.max(0,Math.sin(t)), s=1+0.15*f; m4.makeScale(s,s,s).setPosition(Math.cos(t)*rx,y-f*f*drop,Math.sin(t)*rz); im.setMatrixAt(i,m4); } g.add(im); });
   const cl=add(new THREE.OctahedronGeometry(0.038),J.pink,0,y0-0.2,0.315,g,false); cl.scale.set(1,1.4,0.6);
   add(new THREE.TorusGeometry(0.046,0.008,6,16),J.gold,0,y0-0.2,0.31,g,false);
