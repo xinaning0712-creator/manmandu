@@ -885,6 +885,16 @@ function loop(){
     tv.project(cam); el.style.left=((tv.x+1)/2*W)+'px'; el.style.top=((1-tv.y)/2*H)+'px'; el.style.display=(tv.z>1||tv.z<-1)?'none':''; }
 }
 
+/* ================= keep screen awake while reading ================= */
+let wakeLock=null;
+async function keepAwake(on){
+  try{
+    if(on && 'wakeLock' in navigator && !wakeLock && document.visibilityState==='visible'){ wakeLock=await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release',()=>{ wakeLock=null; }); }
+    else if(!on && wakeLock){ const w=wakeLock; wakeLock=null; await w.release(); }
+  }catch(e){ wakeLock=null; }
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && S.room && S.reading) keepAwake(true); });
+
 /* ================= enter / leave ================= */
 async function enterRoom(rid){
   if(!S.profile){ openCheck(rid); return; }
@@ -892,12 +902,12 @@ async function enterRoom(rid){
   $('lobby').hidden=true; $('roomView').hidden=false; $('rName').textContent=ROOMS[rid].zh;
   S.room=rid; openRoomScene(rid);
   S.seat=freeSeat(store.get('mmd.seat.'+rid,null)); S.reading=true; S.readStart=Date.now(); S.readAcc=0; creditedMin=0; S.lookMe=false; $('btnMe').textContent='看看我'; camGoal.active=false; $('btnMe').classList.remove('on');
-  pushPresence(); syncAvatars(); renderRead(); audio.update();
+  pushPresence(); syncAvatars(); renderRead(); audio.update(); keepAwake(true);
   $('rHint').hidden=false; setTimeout(()=>{$('rHint').hidden=true;},7000);
 }
 function leaveRoom(){
   flushPartial();
-  S.room=null; S.seat=null; S.reading=false; pushPresence();
+  S.room=null; S.seat=null; S.reading=false; pushPresence(); keepAwake(false);
   $('roomView').hidden=true; $('lobby').hidden=false;
   if(R){ disposeScene(R.scene); R=null; } avatars.clear(); $('labels').innerHTML=''; tagEls.clear();
   audio.update(); renderLobby();
@@ -911,7 +921,7 @@ function renderRead(){
   const secs=Math.floor((S.readAcc+(S.reading?Date.now()-S.readStart:0))/1000); $('rTimer').textContent=fmt2(Math.floor(secs/3600))+':'+fmt2(Math.floor(secs/60)%60)+':'+fmt2(secs%60);
 }
 let creditedMin=0;
-$('btnRead').onclick=()=>{ if(S.reading){ S.readAcc+=Date.now()-S.readStart; S.reading=false; } else { S.readStart=Date.now(); S.reading=true; } pushPresence(); syncAvatars(); renderRead(); };
+$('btnRead').onclick=()=>{ if(S.reading){ S.readAcc+=Date.now()-S.readStart; S.reading=false; } else { S.readStart=Date.now(); S.reading=true; } pushPresence(); syncAvatars(); renderRead(); keepAwake(S.reading); };
 function sessionMs(){ return S.readAcc+(S.reading?Date.now()-S.readStart:0); }
 setInterval(()=>{
   renderClock();
