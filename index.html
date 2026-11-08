@@ -270,7 +270,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 23:19</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 23:23</p>
     </div>
   </section>
 
@@ -706,10 +706,10 @@ function addWings(a,staff){
     wingGeo=new THREE.ExtrudeGeometry(sh,{depth:0.02,bevelEnabled:true,bevelThickness:0.04,bevelSize:0.028,bevelSegments:HQ?8:4,curveSegments:HQ?28:14}); wingGeo.translate(0,0,-0.01);
     wingMat=HQ?new THREE.MeshPhysicalMaterial({color:0xfffdf8,roughness:0.7,sheen:1,sheenRoughness:0.4,sheenColor:new THREE.Color(0xfff2dc),emissive:0x2e281e,side:THREE.DoubleSide})
               :new THREE.MeshStandardMaterial({color:0xfffdf8,roughness:0.8,emissive:0x2e281e,side:THREE.DoubleSide}); }
-  return [-1,1].map(s=>{ const root=new THREE.Group(); root.position.set(s*0.085,staff?0.52:0.5,staff?-0.29:-0.31); a.add(root); const piv=new THREE.Group(); root.add(piv);
+  return [-1,1].map(s=>{ const root=new THREE.Group(); root.position.set(s*0.09,staff?0.52:0.62,staff?-0.29:-0.27); a.add(root); const piv=new THREE.Group(); root.add(piv);
     const g=new THREE.Group(); g.scale.set(s,1,1); piv.add(g); add(wingGeo,wingMat,0,0,0,g,false);
     [[0.215,-0.01,0.045],[0.14,-0.035,0.05],[0.065,-0.035,0.045],[0.24,0.09,0.05],[0.16,0.13,0.055],[0.07,0.1,0.05]].forEach(([x,y,rr])=>add(SPH(rr,HQ?14:8),wingMat,x,y,0,g,false).scale.set(1,1,0.7));
-    return {s,piv}; });
+    return {s,piv,by:staff?0.55:0.18,bz:staff?0.22:0.85}; });
 }
 function addPearls(a,portrait,staff){
   const J=jewels(portrait); const g=new THREE.Group(); a.add(g); const geo=SPH(0.025,portrait||HQ?12:8); const m4=new THREE.Matrix4();
@@ -831,7 +831,7 @@ function animateAvatar(av,t){
       if(e.tip){ e.tip.rotation.x=e.tx+Math.sin(t*1.7+u.ph+e.s*2)*0.12+flick*0.4; e.tip.rotation.z=e.tz+Math.sin(t*1.1+u.ph)*0.08; } }); }
   if(u.wings){ const em=u.emote&&(u.emote.act==='stretch'||u.emote.act==='gift'||u.emote.act==='done'||u.emote.act==='wave'); const e=em?(performance.now()-u.emote.t0)/1000:0;
     const flap=em&&e<3?Math.sin(e*14)*0.35*Math.min(1,e*3)*(e>2.4?Math.max(0,(3-e)/0.6):1):Math.sin(t*1.5+u.ph)*0.04;
-    u.wings.forEach(({s,piv})=>{ piv.rotation.y=s*(0.55+flap); piv.rotation.z=s*0.22; }); }
+    u.wings.forEach(({s,piv,by,bz})=>{ piv.rotation.y=s*(by+flap); piv.rotation.z=s*(bz+flap*0.5); }); }
   if(u.twk) u.twk.forEach(sp=>{ const q=sp.userData; const k=(Math.sin(t*q.sp+q.ph)+1)/2, o=k**6; sp.material.opacity=o; sp.material.rotation=t*0.8+q.ph; sp.scale.setScalar(0.05+o*0.1); if(o<0.002&&Math.random()<0.05){ placeTwinkle(sp); q.ph=Math.random()*6; } });
   if(u.emote&&u.emote.act==='gift'){ const e=(performance.now()-u.emote.t0)/1000; if(e<3.4){ const k=Math.min(1,e*2)*(e>2.8?Math.max(0,1-(e-2.8)*2):1); u.a.rotation.y=e<2.2?Math.min(1,e/2.2)*Math.PI*2:0; u.a.position.y=(u.baseY??(u.baseY=u.a.position.y))+0.22*k; giftSparkle(u,e);
       if(u.key){ const el=tagEls.get('e:'+u.key); if(el){ el.textContent='✨ 新收藏！'; el.classList.remove('off'); } }
