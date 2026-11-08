@@ -448,7 +448,7 @@ function renderMyCard(){
 
 /* ================= 3D engine ================= */
 const stage=$('stage');
-const renderer=new THREE.WebGLRenderer({antialias:!LOW,powerPreference:LOW?'low-power':'high-performance'});
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:LOW?'low-power':'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio, LOW?1:1.6));
 renderer.useLegacyLights=true;
 renderer.shadowMap.enabled=!LOW; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -790,7 +790,7 @@ function openRoomScene(rid){
   avatars.clear(); $('labels').innerHTML=''; tagEls.clear();
   flights.length=0; landed.clear();
   HQ = !LOW || rid==='cottage'; leafMs=null;
-  renderer.shadowMap.enabled=HQ; renderer.setPixelRatio(Math.min(devicePixelRatio, rid==='cottage'?2:(LOW?1:1.6)));
+  renderer.shadowMap.enabled=HQ; renderer.setPixelRatio(Math.min(devicePixelRatio, rid==='cottage'?2:(LOW?1.75:1.6)));
   if(composer) composer.setPixelRatio(renderer.getPixelRatio());
   R = rid==='train'?buildTrain():buildCottage(); R.id=rid; FS=R.fs; renderTeaCount();
   if(renderPass) renderPass.scene=R.scene;
@@ -866,7 +866,7 @@ function loop(){
   if(!R || $('roomView').hidden || document.hidden) return;
   const nowMs=performance.now(); const idle=nowMs-lastInput>20000;
   const cot=LOW&&R.id==='cottage';
-  const fps=S.power?(cot?4:6):idle?(cot?5:LOW?10:20):(cot?20:LOW?30:60);
+  const fps=S.power?(cot?4:5):idle?(cot?5:LOW?8:20):(cot?20:LOW?24:60);
   if(nowMs-lastFrame<1000/fps-2) return; lastFrame=nowMs;
   const t=clock.getElapsedTime();
   R.tick(t);
