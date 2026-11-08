@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>慢慢讀車站</title>
 <meta name="description" content="同事一起線上共讀的小車站">
+<meta name="theme-color" content="#1a1513">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="慢慢讀">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -239,6 +247,7 @@ input[type=range]{accent-color:var(--rose)}
         <button class="tool" id="btnNotes" type="button">紙條牆</button>
         <button class="tool" id="btnMe" type="button">看看我</button>
         <button class="tool" id="btnSound" type="button">聲音</button>
+        <button class="tool" id="btnFull" type="button">全螢幕</button>
         <button class="tool leave" id="btnLeave" type="button">離開房間</button>
       </div>
     </div>
@@ -884,6 +893,23 @@ function loop(){
     if(w.obj){ w.obj.getWorldPosition(tv); tv.y+=w.dy*(w.obj.parent===R.scene?1:1); } else { tv.copy(w.pos); if(w.parent&&w.parent!==R.scene) w.parent.localToWorld(tv); }
     tv.project(cam); el.style.left=((tv.x+1)/2*W)+'px'; el.style.top=((1-tv.y)/2*H)+'px'; el.style.display=(tv.z>1||tv.z<-1)?'none':''; }
 }
+
+/* ================= fullscreen ================= */
+const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+const fsOK=()=>!!(document.fullscreenEnabled||document.webkitFullscreenEnabled);
+const standalone=()=>matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+function renderFull(){ const b=$('btnFull'); if(standalone()&&!fsOK()){ b.hidden=true; return; } b.textContent=fsEl()?'離開全螢幕':'全螢幕'; b.classList.toggle('on',!!fsEl()); }
+$('btnFull').onclick=async()=>{
+  try{
+    if(fsEl()){ await (document.exitFullscreen||document.webkitExitFullscreen).call(document); }
+    else if(fsOK()){ const el=document.documentElement; await (el.requestFullscreen||el.webkitRequestFullscreen).call(el); }
+    else { toast('iPhone 請按分享鍵 →「加入主畫面」，從主畫面圖示打開就是全螢幕'); }
+  }catch(e){ toast('這個瀏覽器不支援全螢幕，可以試試「加入主畫面」'); }
+  renderFull();
+};
+document.addEventListener('fullscreenchange',()=>{ renderFull(); setTimeout(resize,50); });
+document.addEventListener('webkitfullscreenchange',()=>{ renderFull(); setTimeout(resize,50); });
+renderFull();
 
 /* ================= keep screen awake while reading ================= */
 let wakeLock=null;
