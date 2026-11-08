@@ -270,7 +270,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 23:23</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 23:27</p>
     </div>
   </section>
 
@@ -706,10 +706,10 @@ function addWings(a,staff){
     wingGeo=new THREE.ExtrudeGeometry(sh,{depth:0.02,bevelEnabled:true,bevelThickness:0.04,bevelSize:0.028,bevelSegments:HQ?8:4,curveSegments:HQ?28:14}); wingGeo.translate(0,0,-0.01);
     wingMat=HQ?new THREE.MeshPhysicalMaterial({color:0xfffdf8,roughness:0.7,sheen:1,sheenRoughness:0.4,sheenColor:new THREE.Color(0xfff2dc),emissive:0x2e281e,side:THREE.DoubleSide})
               :new THREE.MeshStandardMaterial({color:0xfffdf8,roughness:0.8,emissive:0x2e281e,side:THREE.DoubleSide}); }
-  return [-1,1].map(s=>{ const root=new THREE.Group(); root.position.set(s*0.09,staff?0.52:0.62,staff?-0.29:-0.27); a.add(root); const piv=new THREE.Group(); root.add(piv);
-    const g=new THREE.Group(); g.scale.set(s,1,1); piv.add(g); add(wingGeo,wingMat,0,0,0,g,false);
+  return [-1,1].map(s=>{ const root=new THREE.Group(); root.position.set(s*(staff?0.085:0.12),staff?0.52:0.55,staff?-0.29:-0.25); a.add(root); const piv=new THREE.Group(); root.add(piv);
+    const k=staff?1:1.45; const g=new THREE.Group(); g.scale.set(s*k,k,k); piv.add(g); add(wingGeo,wingMat,0,0,0,g,false);
     [[0.215,-0.01,0.045],[0.14,-0.035,0.05],[0.065,-0.035,0.045],[0.24,0.09,0.05],[0.16,0.13,0.055],[0.07,0.1,0.05]].forEach(([x,y,rr])=>add(SPH(rr,HQ?14:8),wingMat,x,y,0,g,false).scale.set(1,1,0.7));
-    return {s,piv,by:staff?0.55:0.18,bz:staff?0.22:0.85}; });
+    return {s,piv,by:staff?0.55:-0.12,bz:staff?0.22:0.32}; });
 }
 function addPearls(a,portrait,staff){
   const J=jewels(portrait); const g=new THREE.Group(); a.add(g); const geo=SPH(0.025,portrait||HQ?12:8); const m4=new THREE.Matrix4();
