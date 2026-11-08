@@ -257,7 +257,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 20:35</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 20:45</p>
     </div>
   </section>
 
@@ -360,6 +360,8 @@ input[type=range]{accent-color:var(--rose)}
       <button class="x" type="button" id="xSound" aria-label="關閉">×</button>
       <h3>聲音</h3>
       <div class="toggle"><span>開啟聲音</span><button class="btn" id="sndToggle" type="button">開啟</button></div>
+      <div class="toggle"><span>雨聲</span><button class="btn" id="rainToggle" type="button">自動</button></div>
+      <div class="toggle"><span>翻書聲</span><button class="btn" id="pageToggle" type="button">開啟</button></div>
       <div class="slider"><label for="volNoise">白噪音</label><input type="range" id="volNoise" min="0" max="100" step="1" value="60"><output id="oNoise">60</output></div>
       <div class="slider"><label for="volMusic">背景音樂</label><input type="range" id="volMusic" min="0" max="100" step="1" value="40"><output id="oMusic">40</output></div>
       <p class="note-line" id="sndInfo">白噪音會跟著房間和時段變化。</p>
@@ -704,7 +706,7 @@ function animateAvatar(av,t){
     if(emo.act==='tea'){ const k=e<1?e:e<2.4?1:Math.max(0,1-(e-2.4)); sipPose(k); say='喝口茶'; }
     if(emo.act==='mark'){ u.hl.visible=true; armR.rotation.x=0.18; armR.rotation.y=Math.sin(e*5)*0.32; armR.rotation.z=0.1; u.head.rotation.x=0.32; u.bk.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='BoxGeometry'&&c.material.transparent) c.visible=e>0.4; }); say='★ 畫重點'; }
   } else if(u.bk){ u.bk.children.forEach(c=>{ if(c.geometry&&c.geometry.type==='BoxGeometry'&&c.material.transparent) c.visible=false; }); }
-  if(!paused&&!emo){ const period=8+(u.ph%5); const ph=(t+u.ph*3)%period; u.fp.rotation.z = ph<0.8 ? (ph/0.8)*Math.PI : Math.PI; if(ph>period-0.05) u.fp.rotation.z=0; } else u.fp.rotation.z=0;
+  if(!paused&&!emo){ const period=8+(u.ph%5); const ph=(t+u.ph*3)%period; if(u.lastPh!=null&&ph<u.lastPh&&av.parent) audio.flip(); u.lastPh=ph; u.fp.rotation.z = ph<0.8 ? (ph/0.8)*Math.PI : Math.PI; if(ph>period-0.05) u.fp.rotation.z=0; } else u.fp.rotation.z=0;
   if(u.key){ const el=tagEls.get('e:'+u.key); if(el){ if(say){ if(el.textContent!==say) el.textContent=say; el.classList.remove('off'); } else el.classList.add('off'); } }
 }
 
@@ -1342,8 +1344,9 @@ const audio=(()=>{
   function init(){ if(ctx) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; ctx=new AC(); master=ctx.createGain(); master.gain.value=vN/100*0.9; master.connect(ctx.destination); noiseBuf=noiseBuffer();
     bed('fire','bandpass',520,0.6,0.08); bed('rain','lowpass',1400,0.4,0.16); bed('rumble','lowpass',160,0.7,0.5); bed('hiss','highpass',3000,0.5,0.015); }
   function scene(){ if(!ctx) return {}; const p=currentPhase(); const rid=S.room;
-    if(rid==='cottage') return {fire:1,rain:(p==='dusk'||p==='night')?1:0,birds:(p==='morning'||p==='afternoon'),crackle:true};
-    if(rid==='train') return {rumble:1,hiss:1,clack:true,birds:p==='morning'};
+    const rp=store.get('mmd.rain','auto'); const autoRain=rid==='cottage'&&(p==='dusk'||p==='night'); const rain=rp==='on'||(rp==='auto'&&autoRain);
+    if(rid==='cottage') return {fire:1,rain:rain?1:0,drops:rain,birds:!rain&&(p==='morning'||p==='afternoon'),crackle:true};
+    if(rid==='train') return {rumble:1,hiss:1,clack:true,rain:rain?1:0,drops:rain,birds:!rain&&p==='morning'};
     return {}; }
   function update(){
     timers.forEach(clearInterval); timers=[];
@@ -1352,7 +1355,7 @@ const audio=(()=>{
     const sc=scene(); const now=ctx.currentTime;
     for(const [k,l] of Object.entries(layers)) l.g.gain.setTargetAtTime(sc[k]?l.target:0,now,0.8);
     if(sc.crackle) timers.push(setInterval(()=>{ if(Math.random()<0.35) burst(1800+Math.random()*2500,0.04+Math.random()*0.05,0.12+Math.random()*0.15,'highpass'); },130));
-    if(sc.rain) timers.push(setInterval(()=>{ if(Math.random()<0.5) burst(3500+Math.random()*3000,0.02,0.05,'highpass'); },90));
+    if(sc.drops){ timers.push(setInterval(()=>{ if(Math.random()<0.6) burst(3500+Math.random()*3500,0.015+Math.random()*0.02,0.03+Math.random()*0.05,'highpass'); },70)); timers.push(setInterval(()=>{ if(Math.random()<0.25) burst(700+Math.random()*500,0.06,0.06,'bandpass'); },400)); }
     if(sc.birds) timers.push(setInterval(()=>{ if(Math.random()<0.3){ chirp(); setTimeout(chirp,170); } },1800));
     if(sc.clack){ let i=0; timers.push(setInterval(()=>{ i++; if(i%5===0){ burst(900,0.08,0.35); setTimeout(()=>burst(900,0.08,0.3),140); } },220)); }
     music();
@@ -1365,15 +1368,26 @@ const audio=(()=>{
     musicEl.volume=vM/100; musicEl.play().catch(()=>{ $('sndInfo').textContent='背景音樂這台裝置播不了，建議站長換成 mp3 或 m4a 格式。'; });
   }
   function setOn(v){ on=v; store.set('mmd.sound',v); if(v) init(); update(); }
+  let lastFlip=0;
+  function flip(){
+    if(!on||!ctx||!store.get('mmd.page',true)) return; const nowMs=performance.now(); if(nowMs-lastFlip<1100) return; lastFlip=nowMs;
+    const t=ctx.currentTime; [[0,0.16,0.26],[0.13,0.09,0.18]].forEach(([d,vol,dur])=>{
+      const s=ctx.createBufferSource(); s.buffer=noiseBuf; const f=ctx.createBiquadFilter(); f.type='bandpass'; f.Q.value=0.9;
+      f.frequency.setValueAtTime(1800,t+d); f.frequency.exponentialRampToValueAtTime(5200,t+d+dur*0.6); f.frequency.exponentialRampToValueAtTime(2600,t+d+dur);
+      const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t+d); g.gain.exponentialRampToValueAtTime(vol,t+d+0.04); g.gain.exponentialRampToValueAtTime(0.0001,t+d+dur);
+      s.connect(f).connect(g).connect(master); s.start(t+d,Math.random()*1.5); s.stop(t+d+dur+0.05); });
+  }
   function setVN(v){ vN=v; store.set('mmd.vN',v); if(master) master.gain.value=v/100*0.9; }
   function setVM(v){ vM=v; store.set('mmd.vM',v); if(musicEl) musicEl.volume=v/100; }
-  return { update, setOn, setVN, setVM, get on(){return on;}, get vN(){return vN;}, get vM(){return vM;}, music };
+  return { update, setOn, setVN, setVM, flip, get on(){return on;}, get vN(){return vN;}, get vM(){return vM;}, music };
 })();
-function renderSound(){ $('sndToggle').textContent=audio.on?'關閉':'開啟'; $('btnSound').classList.toggle('on',audio.on); $('volNoise').value=audio.vN; $('oNoise').textContent=audio.vN; $('volMusic').value=audio.vM; $('oMusic').textContent=audio.vM;
+function renderSound(){ const rp=store.get('mmd.rain','auto'); $('rainToggle').textContent={auto:'自動（夜晚的小屋下雨）',on:'一直下雨',off:'不要雨聲'}[rp]; $('pageToggle').textContent=store.get('mmd.page',true)?'開啟':'關閉'; $('sndToggle').textContent=audio.on?'關閉':'開啟'; $('btnSound').classList.toggle('on',audio.on); $('volNoise').value=audio.vN; $('oNoise').textContent=audio.vN; $('volMusic').value=audio.vM; $('oMusic').textContent=audio.vM;
   $('sndInfo').textContent=S.settings.musicUrl?('白噪音會跟著房間和時段變化。背景音樂：'+(S.settings.musicName||'站長上傳的音樂')):'白噪音會跟著房間和時段變化。站長還沒放背景音樂。'; }
 $('btnSound').onclick=()=>{ renderSound(); $('vSound').hidden=false; };
 $('xSound').onclick=()=>$('vSound').hidden=true;
 $('sndToggle').onclick=()=>{ audio.setOn(!audio.on); renderSound(); };
+$('rainToggle').onclick=()=>{ const o=['auto','on','off']; const rp=store.get('mmd.rain','auto'); store.set('mmd.rain',o[(o.indexOf(rp)+1)%3]); renderSound(); audio.update(); };
+$('pageToggle').onclick=()=>{ store.set('mmd.page',!store.get('mmd.page',true)); renderSound(); };
 $('volNoise').oninput=e=>{ audio.setVN(+e.target.value); $('oNoise').textContent=e.target.value; };
 $('volMusic').oninput=e=>{ audio.setVM(+e.target.value); $('oMusic').textContent=e.target.value; };
 
