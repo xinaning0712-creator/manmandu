@@ -102,6 +102,9 @@ button{cursor:pointer}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{font-size:12px;border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;color:var(--muted)}
 .chip.on{border-color:var(--rose);color:var(--rose)}
+.xitem{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;border:1px solid var(--line-2);border-radius:12px;padding:10px 12px}
+.xitem b{color:var(--paper);font-weight:500}.xitem small{color:var(--muted);font-size:12px;grid-column:1}.xitem .cost{color:var(--lamp);font-size:13px}
+.xitem.soon{opacity:.55}.xitem .btn{grid-row:1/span 2;grid-column:2}
 .who{display:flex;align-items:center;gap:10px}
 .who .dot{width:56px;height:56px;border-radius:50%;flex:none;border:3px solid var(--line-2);background-color:#3a2e2a;background-size:cover;background-position:center}
 .who b{font-family:var(--f-display);font-size:18px;font-weight:700}
@@ -261,12 +264,13 @@ input[type=range]{accent-color:var(--rose)}
             <button class="btn" id="btnTodo" type="button">待辦清單</button>
             <button class="btn" id="btnLog" type="button">閱讀紀錄本</button>
             <button class="btn" id="btnNotesL" type="button">紙條牆</button>
+            <button class="btn" id="btnXmasL" type="button" hidden>聖誕收藏</button>
             <button class="btn" id="btnAdmin" type="button">站長登入</button>
           </div>
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 22:51</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 23:05</p>
     </div>
   </section>
 
@@ -284,6 +288,7 @@ input[type=range]{accent-color:var(--rose)}
       <div class="tools">
         <button class="tool" id="btnTea" type="button">送茶</button>
         <button class="tool" id="btnEmote" type="button">動作</button>
+        <button class="tool" id="btnXmasR" type="button" hidden>羽毛收藏</button>
         <button class="tool" id="btnTodoR" type="button">待辦</button>
         <button class="tool" id="btnLogR" type="button">紀錄本</button>
         <button class="tool" id="btnNotes" type="button">紙條牆</button>
@@ -401,6 +406,17 @@ input[type=range]{accent-color:var(--rose)}
     </div>
   </div>
 
+  <div class="veil" id="vXmas" hidden>
+    <div class="sheet">
+      <button class="x" type="button" id="xXmas" aria-label="關閉">×</button>
+      <h3>聖誕羽毛收藏</h3>
+      <p class="sub" style="margin:0">12/1–12/25 活動期間，每專心滿 1 小時，桌上會飄下一根天使羽毛，點它就能撿起來。集到的羽毛可以換收藏，換到的東西活動結束後也會一直留著。</p>
+      <div class="ticket" id="xmasStat"></div>
+      <div id="xmasItems" style="display:grid;gap:10px"></div>
+      <div class="err" id="xmasErr"></div>
+    </div>
+  </div>
+
   <div class="veil" id="vAdmin" hidden>
     <div class="sheet">
       <button class="x" type="button" id="xAdmin" aria-label="關閉">×</button>
@@ -414,6 +430,9 @@ input[type=range]{accent-color:var(--rose)}
         <textarea id="noticeIn" maxlength="120" placeholder="背景音樂還在製作中，敬請期待！"></textarea>
         <div class="btnrow" style="margin-top:8px"><button class="btn primary" id="noticeSave" type="button">發布公告</button><button class="btn" id="noticeClear" type="button">撤下公告</button></div>
         <div class="err" id="noticeErr"></div></div>
+      <div><span class="lbl2">聖誕羽毛活動（12/1 自動開始）</span>
+        <div class="btnrow"><button class="btn" id="xmasToggle" type="button">提前開啟（測試用）</button><button class="btn" id="xmasTest" type="button">給自己 6 根測試羽毛</button></div>
+        <div class="note-line" id="xmasAdminMsg"></div></div>
       <div><label class="lbl2" for="goalIn">每月共讀目標（小時）</label>
         <div style="display:flex;gap:8px"><input type="number" id="goalIn" min="3" max="500" step="1" value="30"><button class="btn" id="goalSave" type="button">儲存</button></div>
         <div class="err" id="goalErr"></div></div>
@@ -447,6 +466,7 @@ setTimeout(function(){ if(!window.__booted){ var f=document.getElementById('fail
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 window.__booted = true;
 
 /* ================= helpers ================= */
@@ -458,7 +478,7 @@ const fmt2 = n => String(n).padStart(2,'0');
 function taipeiNow(){
   const p = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
   const g = t => p.find(x=>x.type===t)?.value;
-  return { y:+g('year'), m:+g('month'), h:(+g('hour'))%24, min:+g('minute') };
+  return { y:+g('year'), m:+g('month'), d:+g('day'), h:(+g('hour'))%24, min:+g('minute') };
 }
 const ym = () => { const t=taipeiNow(); return t.y+'-'+fmt2(t.m); };
 const PHASES = ['morning','afternoon','dusk','night'];
@@ -481,6 +501,12 @@ const SCARVES = [
   {k:'mist',zh:'霧藍',c:'#8ea3b8'},{k:'mustard',zh:'芥末黃',c:'#d8b25a'},{k:'wine',zh:'酒紅',c:'#9a4a4e'},
   {k:'lavender',zh:'薰衣草紫',c:'#b3a3d6'},{k:'plum',zh:'葡萄紫',c:'#7e5a96'}];
 const ACCS = [{h:5,zh:'毛帽'},{h:10,zh:'圓眼鏡'},{h:20,zh:'小花'}];
+const XMAS_ITEMS = [
+  {k:'crown',zh:'閃亮小皇冠',cost:6,d:'金色皇冠鑲粉藍紫寶石，尖端是小珍珠，會一閃一閃'},
+  {k:'pearl',zh:'雙層珍珠項鍊',cost:9,d:'兩圈滿滿的珍珠，中間一顆粉紅寶石'},
+  {k:'wings',zh:'天使小翅膀',cost:12,d:'造型修改中，敬請期待',soon:true},
+  {k:'snow',zh:'雪花特效',cost:20,d:'座位上方飄小雪，敬請期待',soon:true}];
+function xmasOn(){ const t=taipeiNow(); const md=t.m*100+t.d; return (md>=1201&&md<=1225)||!!S.settings.xmasEarly; }
 const NOTE_COLORS = ['#f3d9b8','#f2c6c2','#d9e2c4','#cfdbe6','#efe2a8','#e2d6f0','#cdb8e3'];
 const ROOMS = { cottage:{zh:'頁間小屋'}, train:{zh:'夜行列車'} };
 
@@ -503,9 +529,10 @@ const groupMin = () => +(S.group.months?.[ym()]||0);
 function groupTier(){ const g=groupMin(), G=goalMin(); return g>=G?3:g>=G*2/3?2:g>=G/3?1:0; }
 const myTotalH = () => (S.profile?.total||0)/60;
 const accCount = () => ACCS.filter(a=>myTotalH()>=a.h).length;
+const myWear = () => (S.profile?.wear||[]).filter(k=>(S.profile?.items||[]).includes(k));
 function myPresence(){
   const p=S.profile||{};
-  return { uid:S.uid, nick:p.nick||'旅人', animal:p.animal||'bear', scarf:p.scarf||'rose', acc:accCount(), room:S.room, seat:S.seat, reading:!!S.reading, staff:S.staff?(S.room==='train'?'conductor':'waiter'):null, since:S.staffSince||0 };
+  return { uid:S.uid, nick:p.nick||'旅人', animal:p.animal||'bear', scarf:p.scarf||'rose', acc:accCount(), wear:myWear(), room:S.room, seat:S.seat, reading:!!S.reading, staff:S.staff?(S.room==='train'?'conductor':'waiter'):null, since:S.staffSince||0 };
 }
 function pushPresence(){ if(chan&&chanReady){ chan.track({...myPresence(),tab:TAB,t:Date.now()}).catch(()=>{}); onPeersLocal(); } else { onPeersLocal(); } }
 function peerList(){
@@ -558,7 +585,7 @@ function renderMyCard(){
   const t=document.createElement('div'); t.className='ticket';
   const who=document.createElement('div'); who.className='who';
   const dot=document.createElement('span'); dot.className='dot'; dot.style.borderColor=sc.c; dot.setAttribute('role','img'); dot.setAttribute('aria-label',an.zh+'大頭貼');
-  const pu=portraitURL({animal:pr.animal,scarf:pr.scarf,acc:accCount(),nick:pr.nick}); if(pu) dot.style.backgroundImage='url('+pu+')'; else dot.style.backgroundColor='#'+an.c.toString(16).padStart(6,'0');
+  const pu=portraitURL({animal:pr.animal,scarf:pr.scarf,acc:accCount(),wear:myWear(),nick:pr.nick}); if(pu) dot.style.backgroundImage='url('+pu+')'; else dot.style.backgroundColor='#'+an.c.toString(16).padStart(6,'0');
   const nm=document.createElement('div'); const b=document.createElement('b'); b.textContent=pr.nick; const s=document.createElement('span'); s.textContent=' '+an.zh+'・'+sc.zh+'圍巾'; nm.append(b,s); who.append(dot,nm);
   const r1=document.createElement('div'); r1.className='row';
   const tot=(pr.total||0)/60, mon=(pr.months?.[ym()]||0)/60;
@@ -570,6 +597,8 @@ function renderMyCard(){
   t.append(who,r1,chips);
   const am=store.get('mmd.actmin.'+ym(),{})||{}; const ak=Object.keys(am).filter(k=>am[k]>0).sort((a,b)=>am[b]-am[a]); if(ak.length){ const r=document.createElement('div'); r.className='chips'; ak.slice(0,6).forEach(k=>{ const ch=document.createElement('span'); ch.className='chip'; ch.textContent=k+' '+(am[k]/60).toFixed(1)+' 小時'; r.append(ch); }); t.append(r); }
   const stamps=(store.get('mmd.stamps',[])||[]).length; if(stamps){ const ch=document.createElement('span'); ch.className='chip on'; ch.textContent='列車長紀念章 ×'+stamps; chips.append(ch); }
+  if(xmasOn()||(pr.items||[]).length){ const xr=document.createElement('div'); xr.className='chips'; const ch=document.createElement('span'); ch.className='chip on'; ch.textContent='🪶 天使羽毛 '+((pr.feathers||0)-(pr.spent||0))+' 根'; xr.append(ch);
+    (pr.items||[]).forEach(k=>{ const it=itemOf(k); if(!it) return; const c2=document.createElement('span'); c2.className='chip'+((pr.wear||[]).includes(k)?' on':''); c2.textContent=it.zh; xr.append(c2); }); t.append(xr); }
   if(pr.code){ const cr=document.createElement('div'); cr.className='row'; const l=document.createElement('span'); l.className='lbl'; l.textContent='票卡碼（換手機時用來找回紀錄）'; const v=document.createElement('b'); v.style.fontFamily='var(--f-mono)'; v.style.letterSpacing='.2em'; v.textContent=pr.code; cr.append(l,v); t.append(cr); }
   c.append(t);
 }
@@ -633,6 +662,51 @@ let SHMAP = 1024;
 /* ---------- avatar ---------- */
 const DARK=M(0x2a1a16,0.4), BLUSH=M(0xe79a94,1,{transparent:true,opacity:0.7}), PAGE=M(0xf4ead8,0.9);
 const BOOKC=[0x8a4e45,0x6b7a5e,0xc49a6c,0x5e4a5a,0xa8705e,0x3f5560];
+/* ---------- 聖誕收藏：皇冠、珍珠 ---------- */
+let envTex=null; const JW={};
+function jewels(portrait){
+  const k=portrait?'p':'m'; if(JW[k]) return JW[k];
+  let env=null; if(!portrait&&HQ){ try{ if(!envTex){ const pm=new THREE.PMREMGenerator(renderer); envTex=pm.fromScene(new RoomEnvironment(),0.04).texture; pm.dispose(); } env=envTex; }catch(e){ env=null; } }
+  const gold=env?new THREE.MeshPhysicalMaterial({color:0xf2c76a,metalness:1,roughness:0.14,clearcoat:1,clearcoatRoughness:0.05,envMap:env,envMapIntensity:1.5})
+                :new THREE.MeshStandardMaterial({color:0xf2c76a,metalness:0.55,roughness:0.28,emissive:0x5a3a10,emissiveIntensity:0.35});
+  const pearl=env?new THREE.MeshPhysicalMaterial({color:0xfbf5ec,roughness:0.18,clearcoat:1,clearcoatRoughness:0.08,iridescence:1,iridescenceIOR:1.4,iridescenceThicknessRange:[180,420],sheen:0.6,sheenColor:new THREE.Color(0xffe8f0),envMap:env,envMapIntensity:1.2})
+                 :new THREE.MeshStandardMaterial({color:0xfbf5ec,roughness:0.25,emissive:0x2a2420,emissiveIntensity:0.5});
+  const gem=c=>env?new THREE.MeshPhysicalMaterial({color:c,roughness:0.02,transmission:0.7,thickness:0.05,ior:2.2,clearcoat:1,envMap:env,envMapIntensity:2.2,emissive:new THREE.Color(c).multiplyScalar(0.18)})
+                  :new THREE.MeshStandardMaterial({color:c,roughness:0.15,metalness:0.1,emissive:new THREE.Color(c).multiplyScalar(0.3)});
+  const star=cvTex(64,(g)=>{ const grd=g.createRadialGradient(32,32,0,32,32,32); grd.addColorStop(0,'rgba(255,255,255,1)'); grd.addColorStop(0.15,'rgba(255,240,200,.9)'); grd.addColorStop(1,'rgba(255,220,150,0)');
+    g.fillStyle=grd; g.beginPath(); g.moveTo(32,0); g.lineTo(36,28); g.lineTo(64,32); g.lineTo(36,36); g.lineTo(32,64); g.lineTo(28,36); g.lineTo(0,32); g.lineTo(28,28); g.closePath(); g.fill(); });
+  return JW[k]={gold,pearl,pink:gem(0xf06f96),gems:[0xf08aa8,0xa9c8f0,0xc3a6ea,0xf08aa8,0xa9c8f0].map(gem),star};
+}
+function addCrown(head,portrait){
+  const J=jewels(portrait); const c=new THREE.Group(); c.position.set(0,0.335,0.17); c.rotation.x=0.2; c.scale.setScalar(0.72); head.add(c);
+  const band=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.17,0.075,32,1,true),J.gold); band.material=J.gold; c.add(band);
+  const lid=add(new THREE.CircleGeometry(0.165,24),J.gold,0,-0.03,0,c,false); lid.rotation.x=-Math.PI/2;
+  add(new THREE.TorusGeometry(0.17,0.012,6,32),J.gold,0,-0.037,0,c,false).rotation.x=Math.PI/2; add(new THREE.TorusGeometry(0.16,0.01,6,32),J.gold,0,0.037,0,c,false).rotation.x=Math.PI/2;
+  for(let i=0;i<5;i++){ const an=i/5*Math.PI*2+Math.PI/2, cx=Math.cos(an)*0.158, cz=Math.sin(an)*0.158;
+    add(new THREE.ConeGeometry(0.038,0.13,4),J.gold,cx,0.1,cz,c,false).rotation.y=-an; add(SPH(0.022,12),J.pearl,cx,0.175,cz,c,false);
+    const gm=add(new THREE.OctahedronGeometry(0.022),J.gems[i],Math.cos(an+Math.PI/5)*0.172,0,Math.sin(an+Math.PI/5)*0.172,c,false); gm.scale.set(1,1.3,0.6); gm.lookAt(0,0,0); }
+  const big=add(new THREE.OctahedronGeometry(0.042),J.pink,0,0.005,0.176,c,false); big.scale.set(1,1.25,0.55);
+  add(new THREE.TorusGeometry(0.045,0.007,6,16),J.gold,0,0.005,0.172,c,false);
+  if(portrait) return null;
+  const twk=[]; for(let i=0;i<4;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:J.star,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0})); c.add(sp); sp.userData={ph:Math.random()*6,sp:1.4+Math.random()*1.4}; placeTwinkle(sp); twk.push(sp); }
+  return twk;
+}
+function giftSparkle(u,e){
+  if(!u.spk){ const J=jewels(false); const g=new THREE.Group(); g.position.set(0,1.3,0); u.a.parent.add(g); u.spk=g;
+    for(let i=0;i<18;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:J.star,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,color:[0xffffff,0xffd6e2,0xfff0b0][i%3]})); const an=i/18*Math.PI*2;
+      sp.userData.v=new THREE.Vector3(Math.cos(an)*(0.6+Math.random()*0.5),0.4+Math.random()*0.9,Math.sin(an)*(0.6+Math.random()*0.5)); g.add(sp); } }
+  const k=Math.max(0,e-0.3); u.spk.children.forEach(sp=>{ const v=sp.userData.v; sp.position.set(v.x*k,v.y*k-0.35*k*k,v.z*k); const o=Math.max(0,1-k/2.4); sp.material.opacity=o*(0.6+0.4*Math.sin(e*20+v.x*9)); sp.scale.setScalar(0.12+0.1*o); sp.material.rotation=e*2; });
+}
+function placeTwinkle(sp){ const an=Math.random()*Math.PI*2, y=Math.random()<0.5?0.17:Math.random()*0.08; sp.position.set(Math.cos(an)*0.17,y,Math.sin(an)*0.17); }
+function addPearls(a,portrait,staff){
+  const J=jewels(portrait); const g=new THREE.Group(); a.add(g); const geo=SPH(0.028,portrait||HQ?14:8); const m4=new THREE.Matrix4();
+  const y0=staff?0.68:0.66;
+  [[0.3,0.27,y0+0.01,0.06,24],[0.325,0.3,y0,0.17,30]].forEach(([rx,rz,y,drop,n])=>{ const im=new THREE.InstancedMesh(geo,J.pearl,n);
+    for(let i=0;i<n;i++){ const t=i/n*Math.PI*2, f=Math.max(0,Math.sin(t)), s=1+0.15*f; m4.makeScale(s,s,s).setPosition(Math.cos(t)*rx,y-f*f*drop,Math.sin(t)*rz); im.setMatrixAt(i,m4); } g.add(im); });
+  const cl=add(new THREE.OctahedronGeometry(0.038),J.pink,0,y0-0.2,0.315,g,false); cl.scale.set(1,1.4,0.6);
+  add(new THREE.TorusGeometry(0.046,0.008,6,16),J.gold,0,y0-0.2,0.31,g,false);
+  return g;
+}
 function buildAnimal(spec){
   const an=ANIMALS.find(a=>a.k===spec.animal)||ANIMALS[0];
   const sc=(SCARVES.find(s=>s.k===spec.scarf)||SCARVES[0]).c;
@@ -713,10 +787,13 @@ function buildAnimal(spec){
     add(new THREE.CylinderGeometry(0.02,0.025,0.16,8),ant,s*0.25,0.5,-0.04,head).rotation.z=-s*1.1; }); }
   const acc=spec.acc||0;
   if(staff==='conductor'){ const capM=FAB(0x26304a,0xd0d8f0); add(new THREE.CylinderGeometry(0.3,0.33,0.2,24),capM,0,0.36,-0.02,head); add(new THREE.CylinderGeometry(0.31,0.31,0.04,24),M(0xd8b25a,0.3,{metalness:0.7}),0,0.29,-0.02,head,false); const br=add(new THREE.CylinderGeometry(0.2,0.2,0.025,20,1,false,-Math.PI/2,Math.PI),M(0x1a1f2e,0.4),0,0.27,0.12,head,false); br.rotation.x=0.15; }
-  if(acc>=1&&!staff){ const hatM=FAB(new THREE.Color(sc).offsetHSL(0,-0.05,-0.08).getHex(),0xffffff); const hat=add(new THREE.SphereGeometry(0.36,24,12,0,Math.PI*2,0,Math.PI/2),hatM,0,0.1,-0.02,head); hat.scale.set(1.08,0.85,1.05);
+  const wear=spec.wear||[]; const crownOn=wear.includes('crown')&&staff!=='conductor';
+  if(acc>=1&&!staff&&!crownOn){ const hatM=FAB(new THREE.Color(sc).offsetHSL(0,-0.05,-0.08).getHex(),0xffffff); const hat=add(new THREE.SphereGeometry(0.36,24,12,0,Math.PI*2,0,Math.PI/2),hatM,0,0.1,-0.02,head); hat.scale.set(1.08,0.85,1.05);
     add(new THREE.TorusGeometry(0.35,0.05,8,28),FAB(0xf3e9dc),0,0.12,-0.02,head).rotation.x=Math.PI/2; add(SPH(0.08,12),FAB(0xf3e9dc),0,0.43,-0.02,head); }
   if(acc>=2){ const gm=M(0x6a4a2a,0.3,{metalness:0.6}); [-1,1].forEach(s=>add(new THREE.TorusGeometry(0.075,0.011,6,20),gm,s*0.14,0.04,0.38,head,false)); add(new THREE.CylinderGeometry(0.008,0.008,0.12,6),gm,0,0.06,0.39,head,false).rotation.z=Math.PI/2; }
   if(acc>=3){ const fl=new THREE.Group(); fl.position.set(-0.28,0.2,0.16); head.add(fl); for(let i=0;i<5;i++){ const a2=i/5*Math.PI*2; add(SPH(0.04,8),M(0xf6d0d4,0.8),Math.cos(a2)*0.05,Math.sin(a2)*0.05,0,fl,false); } add(SPH(0.03,8),M(0xf0c65a,0.6),0,0,0.02,fl,false); }
+  if(crownOn) extras.twk=addCrown(head,!!spec.portrait);
+  if(wear.includes('pearl')) addPearls(a,!!spec.portrait,!!staff);
   const cup=new THREE.Group(); cup.position.set(0,1.75,0); cup.visible=false; root.add(cup);
   add(new THREE.CylinderGeometry(0.1,0.08,0.14,16),M(0xf5ead8,0.4),0,0,0,cup,false);
   add(new THREE.CylinderGeometry(0.085,0.085,0.01,16),M(0xb98a62,0.4),0,0.065,0,cup,false);
@@ -736,6 +813,11 @@ function animateAvatar(av,t){
     u.ears.forEach((e,i)=>{ const sw=Math.sin(t*1.3+u.ph+e.s)*0.05; const flick=(i===((u.ph*10|0)%u.ears.length))?tw:0;
       e.g.rotation.x=e.bx+sw*0.6-flick*0.25; e.g.rotation.z=e.bz+sw-e.s*flick*0.18;
       if(e.tip){ e.tip.rotation.x=e.tx+Math.sin(t*1.7+u.ph+e.s*2)*0.12+flick*0.4; e.tip.rotation.z=e.tz+Math.sin(t*1.1+u.ph)*0.08; } }); }
+  if(u.twk) u.twk.forEach(sp=>{ const q=sp.userData; const k=(Math.sin(t*q.sp+q.ph)+1)/2, o=k**6; sp.material.opacity=o; sp.material.rotation=t*0.8+q.ph; sp.scale.setScalar(0.05+o*0.1); if(o<0.002&&Math.random()<0.05){ placeTwinkle(sp); q.ph=Math.random()*6; } });
+  if(u.emote&&u.emote.act==='gift'){ const e=(performance.now()-u.emote.t0)/1000; if(e<3.4){ const k=Math.min(1,e*2)*(e>2.8?Math.max(0,1-(e-2.8)*2):1); u.a.rotation.y=e<2.2?Math.min(1,e/2.2)*Math.PI*2:0; u.a.position.y=(u.baseY??(u.baseY=u.a.position.y))+0.22*k; giftSparkle(u,e);
+      if(u.key){ const el=tagEls.get('e:'+u.key); if(el){ el.textContent='✨ 新收藏！'; el.classList.remove('off'); } }
+      if(u.legs&&u.bk){ const [l,rr]=u.legs; l.rotation.set(-1.2*(1-k),0,-2.6*k); rr.rotation.set(-1.2*(1-k),0,2.6*k); u.bk.visible=k<0.3; } return; }
+    u.emote=null; u.a.rotation.y=0; if(u.baseY!=null){ u.a.position.y=u.baseY; u.baseY=null; } if(u.spk){ u.spk.parent?.remove(u.spk); u.spk=null; } }
   if(u.staff||!u.bk) return;
   const [armL,armR]=u.legs; armL.rotation.set(-1.2,0,0); armR.rotation.set(-1.2,0,0); u.bk.visible=true; u.rc.visible=false; u.rc.rotation.set(0,0,0); u.hl.visible=false;
   const emo=(u.emote&&now-u.emote.t0<3400)?u.emote:null; if(u.emote&&!emo) u.emote=null;
@@ -757,11 +839,11 @@ function animateAvatar(av,t){
 /* ---------- portrait (lobby ticket) ---------- */
 let portraitR=null; const portraitCache={};
 function portraitURL(spec){
-  const sig=[spec.animal,spec.scarf,spec.acc].join('|'); if(portraitCache[sig]) return portraitCache[sig];
+  const sig=[spec.animal,spec.scarf,spec.acc,(spec.wear||[]).join(',')].join('|'); if(portraitCache[sig]) return portraitCache[sig];
   try{
     if(!portraitR){ const c=document.createElement('canvas'); c.width=c.height=224; const r=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true,preserveDrawingBuffer:true}); r.useLegacyLights=true; r.toneMapping=THREE.ACESFilmicToneMapping; r.toneMappingExposure=1.1; r.setClearColor(0x3a2e2a,1); portraitR={r,c}; }
     const sc=new THREE.Scene(); sc.add(new THREE.AmbientLight(0xffe0c8,0.55)); const k=new THREE.PointLight(0xffd0a0,1.3,10,2); k.position.set(1.0,2.2,2.4); sc.add(k); const f=new THREE.DirectionalLight(0xc8d0ff,0.3); f.position.set(-2,2,-1.5); sc.add(f);
-    const av=buildAnimal({...spec}); av.userData.a.position.set(0,0,0); av.userData.head.rotation.x=0.02; if(av.userData.bk) av.userData.bk.visible=false; sc.add(av);
+    const av=buildAnimal({...spec,portrait:true}); av.userData.a.position.set(0,0,0); av.userData.head.rotation.x=0.02; if(av.userData.bk) av.userData.bk.visible=false; sc.add(av);
     const tall=spec.animal==='bunny'||spec.animal==='deer'; const cam=new THREE.PerspectiveCamera(tall?30:26,1,0.1,20); cam.position.set(0.15,tall?1.25:1.12,2.3); cam.lookAt(0,tall?1.18:1.02,0);
     portraitR.r.render(sc,cam); const url=portraitR.c.toDataURL('image/png'); disposeScene(sc); portraitCache[sig]=url; return url;
   }catch(e){ return null; }
@@ -1023,7 +1105,7 @@ function syncAvatars(){
   for(const p of occ){
     const pr=p.presence; const seat=+pr.seat; if(!(seat>=0&&seat<R.seats.length)) continue;
     const key=pr.uid||p.peer; seen.add(key); seatTaken[seat]=key;
-    const sig=[pr.animal,pr.scarf,pr.acc,pr.nick].join('|');
+    const sig=[pr.animal,pr.scarf,pr.acc,pr.nick,(pr.wear||[]).join(',')].join('|');
     let av=avatars.get(key);
     if(!av || av.userData.sig!==sig){ if(av){ av.parent.remove(av); } av=buildAnimal(pr); av.userData.sig=sig; avatars.set(key,av); R.avatarParent.add(av); av.userData.hit.userData.uid=pr.uid; av.userData.hit.userData.key=key; }
     const s=R.seats[seat]; av.position.set(s.x,0,s.z); av.rotation.y=s.ry; av.userData.a.position.set(0,s.y,0.08);
@@ -1063,6 +1145,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
   if(!downAt||!R) return; const d=Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y); downAt=null; if(d>6) return;
   const r=renderer.domElement.getBoundingClientRect(); ndc.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1); ray.setFromCamera(ndc,cam);
   const tapAvatar=(key)=>{ const av=avatars.get(key); if(!av) return; if(!av.userData.isMe){ if(S.staff) openStaffSheet(key); else sendTea(av.userData.hit.userData.uid,av.userData.nick,key); } else toast('這是你自己喔，點別人可以送茶'); };
+  if(FE&&FE.landed&&ray.intersectObject(FE.hit,false)[0]){ collectFeather(); return; }
   const avHit=ray.intersectObjects([...avatars.values()].map(a=>a.userData.hit),false)[0];
   if(avHit){ tapAvatar(avHit.object.userData.key); return; }
   const hit=ray.intersectObjects([...R.seats.map(s=>s.hit), R.cork.userData.hit],false)[0]; if(!hit) return; const o=hit.object;
@@ -1092,7 +1175,7 @@ function loop(){
     if(tb.fl){ tb.fl.visible=tb.cur>0.05; tb.fl.scale.y=1.7+Math.sin(t*12+tb.ph)*0.18; } if(tb.shade) tb.shade.emissiveIntensity=0.1+tb.cur*0.6; });
   R.seats.forEach(s=>{ const want=s.taken?(avatars.get(s.taken)?.userData.paused?0.08:0.2):0; s.glow.material.opacity+=(want-s.glow.material.opacity)*0.06; });
   for(const av of avatars.values()) animateAvatar(av,t);
-  tickTea(t); tickStaff(t);
+  tickTea(t); tickStaff(t); tickFeather(t);
   if(camGoal.active){ ctr.target.lerp(camGoal.target,0.08); cam.zoom+= (camGoal.zoom-cam.zoom)*0.08; cam.updateProjectionMatrix(); }
   ctr.update();
   if(composer){ if(renderPass.scene!==R.scene) renderPass.scene=R.scene; try{ composer.render(); }catch(e){ composer=null; renderer.render(R.scene,cam); } }
@@ -1102,9 +1185,85 @@ function loop(){
     tv.project(cam); el.style.left=((tv.x+1)/2*W)+'px'; el.style.top=((1-tv.y)/2*H)+'px'; el.style.display=(tv.z>1||tv.z<-1)?'none':''; }
 }
 
+/* ================= 聖誕羽毛 ================= */
+let FE=null, featherTry=0, featherHinted=false;
+const featherReady=()=>{ const p=S.profile; if(!p) return 0; return Math.floor((p.xmas_min||0)/60)-(p.feathers||0); };
+function makeFeather(){
+  const g=new THREE.Group(); const sh=new THREE.Shape(); const L=0.5, Wd=0.11;
+  sh.moveTo(0,0); sh.bezierCurveTo(Wd,L*0.2,Wd*1.05,L*0.75,0,L); sh.bezierCurveTo(-Wd*0.8,L*0.8,-Wd*1.1,L*0.3,0,0);
+  const geo=new THREE.ExtrudeGeometry(sh,{depth:0.012,bevelEnabled:true,bevelThickness:0.008,bevelSize:0.01,bevelSegments:2,curveSegments:16}); geo.translate(0,-L*0.45,-0.006);
+  const m=new THREE.MeshStandardMaterial({color:0xfffdf6,roughness:0.6,emissive:0xfff0d0,emissiveIntensity:0.45,side:THREE.DoubleSide});
+  const f=new THREE.Mesh(geo,m); g.add(f);
+  const q=new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.004,L*1.05,6),new THREE.MeshStandardMaterial({color:0xe8d6b8,roughness:0.5})); q.position.set(0,0.02,0.012); g.add(q);
+  const J=jewels(false); const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:J.star,color:0xfff0c8,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0.6})); glow.scale.setScalar(0.5); g.add(glow);
+  const hit=new THREE.Mesh(new THREE.SphereGeometry(0.5,8,6),new THREE.MeshBasicMaterial({visible:false})); g.add(hit);
+  g.scale.setScalar(1.25); return {g,hit,glow,mat:m};
+}
+function spawnFeather(){
+  if(!R||FE||S.staff||S.seat==null||featherReady()<=0) return;
+  const s=R.seats[S.seat]; if(!s) return; const o=makeFeather();
+  const dir=new THREE.Vector3(s.cup.x-s.x,0,s.cup.z-s.z).normalize(); const side=new THREE.Vector3(-dir.z,0,dir.x);
+  const to=s.cup.clone().addScaledVector(side,-0.26).add(new THREE.Vector3(0,0.03,0));
+  o.g.position.copy(to).add(new THREE.Vector3(0,3.2,0)); s.parent.add(o.g);
+  FE={...o,to,parent:s.parent,t0:performance.now(),landed:false,seat:S.seat};
+  if(!featherHinted){ featherHinted=true; toast('有一根天使羽毛飄下來了，點它撿起來'); }
+}
+function tickFeather(t){
+  if(!FE) return; if(!R||FE.parent!==R.seats[FE.seat]?.parent){ FE=null; return; }
+  const e=(performance.now()-FE.t0)/1000, D=5.5;
+  if(e<D){ const k=e/D, ease=1-(1-k)*(1-k); FE.g.position.set(FE.to.x+Math.sin(e*2.2)*0.35*(1-k), FE.to.y+3.2*(1-ease), FE.to.z+Math.cos(e*1.7)*0.2*(1-k));
+    FE.g.rotation.set(Math.sin(e*2.2)*0.6*(1-k)+k*1.45, e*0.8, Math.sin(e*2.2+1)*0.5*(1-k)); }
+  else { FE.landed=true; FE.g.position.copy(FE.to); FE.g.position.y+=0.02+Math.sin(t*2)*0.015; FE.g.rotation.set(1.45,0.6,0); }
+  FE.glow.material.opacity=0.35+0.3*Math.sin(t*3); FE.mat.emissiveIntensity=0.35+0.2*Math.sin(t*3);
+}
+async function collectFeather(){
+  if(!FE) return; const o=FE; FE=null; o.g.parent?.remove(o.g);
+  const p=S.profile; p.feathers=(p.feathers||0)+1;
+  if(sb&&S.hasRemote){ const {data,error}=await sb.rpc('collect_feather'); if(!error&&typeof data==='number') p.feathers=data; }
+  store.set('mmd.profile',p); ding(); toast('撿到一根天使羽毛！現在有 '+((p.feathers||0)-(p.spent||0))+' 根可以用');
+  renderMyCard(); renderXmas(); featherTry=Date.now();
+}
+function itemOf(k){ return XMAS_ITEMS.find(x=>x.k===k); }
+function renderXmasBtns(){ const show=xmasOn()||((S.profile?.items||[]).length>0); $('btnXmasR').hidden=!show; $('btnXmasL').hidden=!show; }
+function renderXmas(){
+  renderXmasBtns(); if($('vXmas').hidden) return; const p=S.profile||{}; const have=(p.feathers||0)-(p.spent||0);
+  const st=$('xmasStat'); st.innerHTML=''; const r=document.createElement('div'); r.className='row';
+  r.innerHTML='<div><div class="lbl">可以用的羽毛</div><div class="big"></div></div><div style="text-align:right"><div class="lbl">下一根羽毛</div><div class="big" style="font-size:18px"></div></div>';
+  const bg=r.querySelectorAll('.big'); bg[0].append(String(have)); const sm=document.createElement('small'); sm.textContent='根'; bg[0].append(sm);
+  const ready=featherReady(); bg[1].textContent=!xmasOn()?'活動 12/1 開始':ready>0?('桌上有 '+ready+' 根等你撿'):('再專心 '+(60-((p.xmas_min||0)%60))+' 分鐘');
+  st.append(r);
+  const box=$('xmasItems'); box.innerHTML=''; const items=p.items||[], wear=p.wear||[];
+  XMAS_ITEMS.forEach(it=>{ const d=document.createElement('div'); d.className='xitem'+(it.soon?' soon':'');
+    const b=document.createElement('b'); b.textContent=it.zh; const c=document.createElement('span'); c.className='cost'; c.textContent=' 🪶 '+it.cost; b.append(c);
+    const sm2=document.createElement('small'); sm2.textContent=it.d; const btn=document.createElement('button'); btn.type='button'; btn.className='btn';
+    const own=items.includes(it.k);
+    if(it.soon&&!own){ btn.textContent='準備中'; btn.disabled=true; }
+    else if(own){ const on=wear.includes(it.k); btn.textContent=on?'收起來':'戴上'; btn.className='btn'+(on?'':' primary'); btn.onclick=()=>toggleWear(it.k); }
+    else { btn.textContent='兌換'; btn.className='btn primary'; btn.disabled=have<it.cost; btn.onclick=()=>redeem(it.k); }
+    d.append(b,btn,sm2); box.append(d); });
+}
+async function redeem(k){
+  const it=itemOf(k); $('xmasErr').textContent='';
+  if(!sb||!S.hasRemote){ $('xmasErr').textContent='要連上雲端才能兌換喔'; return; }
+  const {data,error}=await sb.rpc('redeem_item',{p_item:k});
+  if(error){ $('xmasErr').textContent='羽毛還不夠，或已經換過了'; return; }
+  await loadProfile(); renderXmas(); renderMyCard(); pushPresence(); ding(); toast('換到「'+it.zh+'」了！');
+  if(R&&S.seat!=null&&!S.staff){ $('vXmas').hidden=true; setTimeout(()=>{ onEmote({uid:S.uid,act:'gift'}); if(chan&&chanReady) chan.send({type:'broadcast',event:'emote',payload:{uid:S.uid,act:'gift',room:R?.id}}).catch(()=>{}); },500); }
+}
+async function toggleWear(k){
+  const p=S.profile; const w=new Set(p.wear||[]); w.has(k)?w.delete(k):w.add(k); p.wear=[...w];
+  if(sb&&S.hasRemote){ const {data,error}=await sb.rpc('set_wear',{p_wear:p.wear}); if(!error&&Array.isArray(data)) p.wear=data; }
+  store.set('mmd.profile',p); renderXmas(); renderMyCard(); pushPresence();
+}
+$('btnXmasL').onclick=$('btnXmasR').onclick=()=>{ $('xmasErr').textContent=''; $('vXmas').hidden=false; renderXmas(); };
+$('xXmas').onclick=()=>$('vXmas').hidden=true;
+$('xmasToggle').onclick=async()=>{ const on=!S.settings.xmasEarly; const {error}=await sb.rpc('admin_set_xmas',{p_on:on}); $('xmasAdminMsg').textContent=error?'失敗了，請確認 xmas.sql 已經在 Supabase 跑過':(on?'已提前開啟，大家現在專心就會累積羽毛。':'已關閉提前開啟。'); loadSettings(); };
+$('xmasTest').onclick=async()=>{ const {error}=await sb.rpc('admin_test_feathers',{p_n:6}); if(error){ $('xmasAdminMsg').textContent='失敗了，請確認 xmas.sql 已經在 Supabase 跑過'; return; } await loadProfile(); renderMyCard(); renderXmas(); $('xmasAdminMsg').textContent='好了！進房間坐下，桌上會一根一根飄下 6 根羽毛。'; };
+function renderXmasAdmin(){ const b=$('xmasToggle'); if(b) b.textContent=S.settings.xmasEarly?'關閉提前開啟':'提前開啟（測試用）'; }
+
 /* ================= emotes ================= */
 const EMOTES=[['wave','揮揮手'],['stretch','伸懶腰'],['doze','打瞌睡'],['tea','喝口茶'],['mark','畫重點']];
-const EMOTE_OK=[...EMOTES.map(e=>e[0]),'done'];
+const EMOTE_OK=[...EMOTES.map(e=>e[0]),'done','gift'];
 let lastEmote=0;
 $('btnEmote').onclick=()=>{ if(S.staff){ toast('上工中，下工回座位才能做動作'); return; } if(S.seat==null){ toast('先坐下來再做動作'); return; }
   const box=$('emoteActs'); box.innerHTML=''; EMOTES.forEach(([k,l])=>{ const b=document.createElement('button'); b.type='button'; b.textContent=l; b.onclick=()=>doEmote(k); box.append(b); }); $('vEmote').hidden=false; };
@@ -1232,7 +1391,7 @@ function roomStaff(rid){ const best=new Map(); for(const p of peerList()){ const
 function syncStaff(){
   if(!R) return; const seen=new Set();
   for(const p of roomStaff(R.id)){ const pr=p.presence; const key=pr.uid||p.peer; seen.add(key);
-    const sig=[pr.animal,pr.scarf,pr.acc,pr.nick,pr.staff].join('|'); let av=staffAvs.get(key);
+    const sig=[pr.animal,pr.scarf,pr.acc,pr.nick,pr.staff,(pr.wear||[]).join(',')].join('|'); let av=staffAvs.get(key);
     if(!av||av.userData.sig!==sig){ if(av) av.parent.remove(av); av=buildAnimal({...pr,staff:pr.staff}); av.userData.sig=sig; av.userData.a.position.set(0,0.4,0); av.userData.paused=true; R.avatarParent.add(av); staffAvs.set(key,av); }
     av.userData.since=+pr.since||Date.now(); av.userData.nick=pr.nick; av.userData.isMe=pr.uid===S.uid; av.userData.off=(key.length*1.7)%5; }
   for(const [k,av] of staffAvs){ if(!seen.has(k)){ av.parent.remove(av); staffAvs.delete(k); staffOv.delete(k); } }
@@ -1363,6 +1522,7 @@ setInterval(()=>{
   if(S.room&&!S.reading&&!S.staff&&S.restAt&&!S.restReminded&&Date.now()-S.restAt>600000){ S.restReminded=true; ding(); toast('休息 10 分鐘囉，要回來繼續嗎？'); }
   if(S.room){ renderRead(); const m=Math.floor(sessionMs()/60000); if(m>creditedMin){ const add=m-creditedMin; creditedMin=m; creditMinutes(add); } }
   if(R && currentPhase()!==lastPhase) applyPhaseNow();
+  if(R && !FE && Date.now()-featherTry>4000){ featherTry=Date.now(); spawnFeather(); }
 },1000);
 function flushPartial(){ creditedMin=0; S.readAcc=0; }
 
@@ -1725,7 +1885,8 @@ async function saveProfile(){
 }
 async function loadProfile(){
   if(!sb||!S.uid) return;
-  const {data}=await sb.from('profiles').select('nick,animal,scarf,total,months,code').eq('uid',S.uid).maybeSingle();
+  let {data,error}=await sb.from('profiles').select('nick,animal,scarf,total,months,code,xmas_min,feathers,spent,items,wear').eq('uid',S.uid).maybeSingle();
+  if(error) ({data}=await sb.from('profiles').select('nick,animal,scarf,total,months,code').eq('uid',S.uid).maybeSingle());
   if(data){ S.profile={...data,months:data.months||{}}; S.hasRemote=true; store.set('mmd.profile',S.profile); }
   else { S.hasRemote=false; }
 }
@@ -1734,6 +1895,7 @@ async function creditMinutes(n){
   const before=accCount();
   addActMinutes(n);
   const k=ym(); const p=S.profile; p.total=(p.total||0)+n; p.months={...(p.months||{})}; p.months[k]=(p.months[k]||0)+n;
+  if(xmasOn()) p.xmas_min=(p.xmas_min||0)+n;
   store.set('mmd.profile',p);
   if(sb&&S.hasRemote){ const {data}=await sb.rpc('add_minutes',{p_ym:k,p_n:n}); if(typeof data==='number') p.total=data; }
   else if(sb&&!S.hasRemote){ saveProfile(); }
@@ -1747,11 +1909,13 @@ async function loadStats(){
 }
 async function loadSettings(){
   if(!sb) return;
-  let {data,error}=await sb.from('settings').select('goal_hours,music_path,music_name,notice,notice_at,ambience').eq('id',1).maybeSingle();
+  let {data,error}=await sb.from('settings').select('goal_hours,music_path,music_name,notice,notice_at,ambience,xmas_early').eq('id',1).maybeSingle();
+  if(error) ({data,error}=await sb.from('settings').select('goal_hours,music_path,music_name,notice,notice_at,ambience').eq('id',1).maybeSingle());
   if(error){ ({data}=await sb.from('settings').select('goal_hours,music_path,music_name').eq('id',1).maybeSingle()); }
   const d=data||{}; const url=d.music_path?sb.storage.from('music').getPublicUrl(d.music_path).data.publicUrl:null;
   const amb=d.ambience||{}; const ambUrls={}; for(const k of Object.keys(amb)) if(amb[k]) ambUrls[k]=sb.storage.from('music').getPublicUrl(amb[k]).data.publicUrl;
-  S.settings={goalHours:+d.goal_hours||30,musicPath:d.music_path||null,musicName:d.music_name||'',musicUrl:url,notice:d.notice||'',noticeAt:d.notice_at||null,amb,ambUrls};
+  S.settings={goalHours:+d.goal_hours||30,musicPath:d.music_path||null,musicName:d.music_name||'',musicUrl:url,notice:d.notice||'',noticeAt:d.notice_at||null,amb,ambUrls,xmasEarly:!!d.xmas_early};
+  renderXmasAdmin(); renderXmasBtns();
   renderAdminAmb(); audio.ensureReal();
   renderNotice();
   renderLobby(); applyTier(); renderAdminMusic(); audio.music();
