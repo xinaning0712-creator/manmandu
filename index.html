@@ -257,7 +257,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 19:15</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 19:20</p>
     </div>
   </section>
 
@@ -683,10 +683,10 @@ function animateAvatar(av,t){
   const showCup=now<u.teaUntil; u.cup.visible=showCup;
   if(showCup){ u.cup.position.y=1.75+Math.sin(t*3)*0.05; u.cup.rotation.y=t; u.steam.forEach(s=>{const k=(t*0.6+s.userData.o)%1; s.position.set(Math.sin(k*6)*0.03,0.12+k*0.35,0); s.material.opacity=0.5*(1-k); s.scale.setScalar(0.7+k);}); }
   if(u.staff||!u.bk) return;
-  const [armL,armR]=u.legs; armL.rotation.set(0,0,0); armR.rotation.set(0,0,0); u.bk.visible=true; u.rc.visible=false; u.hl.visible=false;
+  const [armL,armR]=u.legs; armL.rotation.set(0,0,0); armR.rotation.set(0,0,0); u.bk.visible=true; u.rc.visible=false; u.rc.rotation.set(0,0,0); u.hl.visible=false;
   const emo=(u.emote&&now-u.emote.t0<3400)?u.emote:null; if(u.emote&&!emo) u.emote=null;
   let say='';
-  const sipPose=(k)=>{ u.bk.visible=false; u.rc.visible=true; armR.rotation.x=-0.25-k*0.95; armR.rotation.z=0.12*k; u.rc.position.set(0.13-0.06*k,0.45+0.38*k,0.42-0.04*k); u.head.rotation.x=0.05-0.12*k; };
+  const sipPose=(k)=>{ u.bk.visible=false; u.rc.visible=true; armR.rotation.x=-0.2-k*0.62; armR.rotation.z=0.28*k; armR.rotation.y=-0.35*k; u.rc.position.set(0.14-0.09*k,0.45+0.27*k,0.44+0.16*k); u.rc.rotation.x=-0.35*k; u.head.rotation.x=0.05-0.1*k; };
   if(paused&&!emo){ const sip=Math.max(0,Math.sin(t*0.5+u.ph))**2; sipPose(sip); say='休息中'; }
   if(emo){ const e=(now-emo.t0)/1000;
     if(emo.act==='wave'){ armR.rotation.x=-2.3; armR.rotation.z=-0.2+Math.sin(e*11)*0.4; say='嗨～'; }
