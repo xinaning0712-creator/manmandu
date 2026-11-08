@@ -546,7 +546,7 @@ function buildAnimal(spec){
   add(new THREE.CylinderGeometry(0.085,0.085,0.01,16),M(0xb98a62,0.4),0,0.065,0,cup,false);
   add(new THREE.TorusGeometry(0.045,0.012,6,12),M(0xf5ead8,0.4),0.11,0,0,cup,false);
   const steam=[]; for(let i=0;i<3;i++){ const s=add(SPH(0.03,8),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.5}),0,0.12,0,cup,false); s.userData.o=i/3; steam.push(s); }
-  const hit=new THREE.Mesh(new THREE.SphereGeometry(0.6,8,6),new THREE.MeshBasicMaterial({visible:false})); hit.position.set(0,1.1,0.1); root.add(hit);
+  const hit=new THREE.Mesh(new THREE.SphereGeometry(0.8,8,6),new THREE.MeshBasicMaterial({visible:false})); hit.position.set(0,1.2,0.1); root.add(hit);
   root.userData={a,torso,head,cup,steam,hit,teaUntil:0,ph:Math.random()*6};
   return root;
 }
@@ -839,11 +839,12 @@ renderer.domElement.addEventListener('pointerdown',e=>{ downAt={x:e.clientX,y:e.
 renderer.domElement.addEventListener('pointerup',e=>{
   if(!downAt||!R) return; const d=Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y); downAt=null; if(d>6) return;
   const r=renderer.domElement.getBoundingClientRect(); ndc.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1); ray.setFromCamera(ndc,cam);
-  const targets=[...[...avatars.values()].map(a=>a.userData.hit), ...R.seats.map(s=>s.hit), R.cork.userData.hit];
-  const hit=ray.intersectObjects(targets,false)[0]; if(!hit) return; const o=hit.object;
+  const tapAvatar=(key)=>{ const av=avatars.get(key); if(!av) return; if(!av.userData.isMe) sendTea(av.userData.hit.userData.uid,av.userData.nick,key); else toast('這是你自己喔，點別人可以送茶'); };
+  const avHit=ray.intersectObjects([...avatars.values()].map(a=>a.userData.hit),false)[0];
+  if(avHit){ tapAvatar(avHit.object.userData.key); return; }
+  const hit=ray.intersectObjects([...R.seats.map(s=>s.hit), R.cork.userData.hit],false)[0]; if(!hit) return; const o=hit.object;
   if(o===R.cork.userData.hit){ openNotes(); return; }
-  if(o.userData.key){ const av=avatars.get(o.userData.key); if(av&&!av.userData.isMe) sendTea(o.userData.uid,av.userData.nick,o.userData.key); else if(av) toast('這是你自己喔，點別人可以送茶'); return; }
-  if(o.userData.seat!=null){ const i=o.userData.seat; if(R.seats[i].taken) return; S.seat=i; store.set('mmd.seat.'+R.id,i); pushPresence(); syncAvatars(); toast('換到新座位了'); }
+  if(o.userData.seat!=null){ const i=o.userData.seat; if(R.seats[i].taken){ tapAvatar(R.seats[i].taken); return; } S.seat=i; store.set('mmd.seat.'+R.id,i); pushPresence(); syncAvatars(); toast('換到新座位了'); }
 });
 
 /* main loop */
