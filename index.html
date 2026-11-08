@@ -258,7 +258,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 22:20</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 22:30</p>
     </div>
   </section>
 
@@ -1392,7 +1392,7 @@ const audio=(()=>{
   }
   function update(){
     timers.forEach(clearInterval); timers=[];
-    if(!on||!ctx){ if(musicEl) musicEl.pause(); Object.values(layers).forEach(l=>l.g.gain.value=0); Object.values(real).forEach(r=>{ if(r.g) r.g.gain.value=0; }); return; }
+    if(!on||!ctx){ stopMusic(); Object.values(layers).forEach(l=>l.g.gain.value=0); Object.values(real).forEach(r=>{ if(r.g) r.g.gain.value=0; }); return; }
     if(ctx.state==='suspended') ctx.resume();
     const sc=scene(); const now=ctx.currentTime;
     if(realLoop('rain',!!sc.rain)){ sc.rain=0; sc.drops=false; }
@@ -1405,12 +1405,23 @@ const audio=(()=>{
     if(sc.clack){ let i=0; timers.push(setInterval(()=>{ i++; if(i%5===0){ burst(900,0.08,0.35); setTimeout(()=>burst(900,0.08,0.3),140); } },220)); }
     music();
   }
+  let mA=null,mB=null,mCur=null,mGain=null,loopTimer=null; const XF=0.6;
+  function mkTrack(url){ const el=new Audio(); el.crossOrigin='anonymous'; el.preload='auto'; el.setAttribute('playsinline',''); el.src=url; const src=ctx.createMediaElementSource(el); const g=ctx.createGain(); g.gain.value=0; src.connect(g).connect(mGain); return {el,g,url}; }
+  function stopMusic(){ [mA,mB].forEach(m=>{ if(m) m.el.pause(); }); clearInterval(loopTimer); loopTimer=null; }
   function music(){
     const url=S.settings.musicUrl;
-    if(!url||!on||!S.room){ if(musicEl) musicEl.pause(); return; }
-    if(!musicEl){ musicEl=new Audio(); musicEl.loop=true; }
-    if(musicEl.src!==url) musicEl.src=url;
-    musicEl.volume=vM/100; musicEl.play().catch(()=>{ $('sndInfo').textContent='背景音樂這台裝置播不了，建議站長換成 mp3 或 m4a 格式。'; });
+    if(!url||!on||!S.room||!ctx){ stopMusic(); return; }
+    if(!mGain){ mGain=ctx.createGain(); mGain.connect(ctx.destination); } mGain.gain.value=vM/100;
+    if(!mA||mA.url!==url){ stopMusic(); mA=mkTrack(url); mB=mkTrack(url); mCur=mA; }
+    if(mCur.el.paused){ mCur.el.play().then(()=>{ mCur.g.gain.cancelScheduledValues(ctx.currentTime); mCur.g.gain.setTargetAtTime(1,ctx.currentTime,0.4); }).catch(()=>{ $('sndInfo').textContent='背景音樂這台裝置播不了，建議站長換成 mp3 或 m4a 格式。'; }); }
+    if(!loopTimer) loopTimer=setInterval(()=>{
+      const e=mCur.el; if(!e.duration||!isFinite(e.duration)||e.paused) return;
+      if(e.duration-e.currentTime<=XF+0.05){
+        const nx=mCur===mA?mB:mA; const t=ctx.currentTime; nx.el.currentTime=0; nx.el.play().catch(()=>{});
+        nx.g.gain.cancelScheduledValues(t); nx.g.gain.setValueAtTime(0,t); nx.g.gain.linearRampToValueAtTime(1,t+XF);
+        mCur.g.gain.cancelScheduledValues(t); mCur.g.gain.setValueAtTime(mCur.g.gain.value,t); mCur.g.gain.linearRampToValueAtTime(0,t+XF);
+        const old=mCur; setTimeout(()=>{ old.el.pause(); old.el.currentTime=0; },XF*1000+300); mCur=nx; }
+    },50);
   }
   function setOn(v){ on=v; store.set('mmd.sound',v); if(v) init(); update(); }
   function wake(){ if(on) init(); }
@@ -1425,7 +1436,7 @@ const audio=(()=>{
       s.connect(f).connect(g).connect(master); s.start(t+d,Math.random()*1.5); s.stop(t+d+dur+0.05); });
   }
   function setVN(v){ vN=v; store.set('mmd.vN',v); if(master) master.gain.value=v/100*0.9; }
-  function setVM(v){ vM=v; store.set('mmd.vM',v); if(musicEl) musicEl.volume=v/100; }
+  function setVM(v){ vM=v; store.set('mmd.vM',v); if(mGain) mGain.gain.value=v/100; }
   return { update, setOn, setVN, setVM, flip, wake, ensureReal, get on(){return on;}, get vN(){return vN;}, get vM(){return vM;}, music };
 })();
 function renderSound(){ const rp=store.get('mmd.rain','auto'); $('rainToggle').textContent={auto:'自動（夜晚的小屋下雨）',on:'一直下雨',off:'不要雨聲'}[rp]; $('pageToggle').textContent=store.get('mmd.page',true)?'開啟':'關閉'; $('sndToggle').textContent=audio.on?'關閉':'開啟'; $('btnSound').classList.toggle('on',audio.on); $('volNoise').value=audio.vN; $('oNoise').textContent=audio.vN; $('volMusic').value=audio.vM; $('oMusic').textContent=audio.vM;
