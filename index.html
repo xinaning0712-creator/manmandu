@@ -53,7 +53,7 @@ button{cursor:pointer}
 .notice .nt{font-size:13px;letter-spacing:.2em;color:#c8d6b0;margin:0 0 6px}
 .notice .nb{font-size:19px;line-height:1.6;white-space:pre-wrap;word-break:break-word;margin:0}
 .notice .nd{font-family:var(--f-mono);font-size:11px;color:#a8b49a;margin-top:6px}
-.roomnote{position:absolute;top:calc(92px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%) rotate(-1deg);width:min(340px,calc(100% - 32px));background:#f3d9b8;color:#3a2a22;border-radius:4px 4px 12px 4px;padding:12px 36px 12px 14px;font-family:var(--f-display);font-size:15px;line-height:1.6;box-shadow:0 3px 0 rgba(0,0,0,.3);z-index:6}
+.roomnote{box-sizing:border-box;position:absolute;top:calc(150px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%) rotate(-1deg);width:min(340px,calc(100% - 32px));background:#f3d9b8;color:#3a2a22;border-radius:4px 4px 12px 4px;padding:12px 36px 12px 14px;font-family:var(--f-display);font-size:15px;line-height:1.6;box-shadow:0 3px 0 rgba(0,0,0,.3);z-index:6}
 .roomnote b{display:block;font-size:12px;letter-spacing:.15em;color:#8a5a42;font-family:var(--f-body)}
 .roomnote button{position:absolute;right:4px;top:4px;border:0;background:transparent;color:#5a4038;font-size:18px;width:30px;height:30px;border-radius:50%}
 .board{background:#120e0c;border:1px solid var(--line);border-radius:14px;overflow:hidden}
@@ -120,7 +120,8 @@ button{cursor:pointer}
 #labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .tag{position:absolute;transform:translate(-50%,-100%);font-size:12px;white-space:nowrap;color:rgba(241,228,216,.92);letter-spacing:.04em;text-shadow:0 1px 4px rgba(0,0,0,.6);padding:1px 6px;border-radius:6px}
 .tag.me{color:var(--lamp)}
-.tag.empty{color:var(--faint);font-size:11px}
+.tag.empty{color:var(--faint);font-size:11px;opacity:.75}
+@media (max-width:480px){.tag.empty{display:none!important}}
 .tag.paused{opacity:.6}
 .hud-top>div:first-child{min-width:0}
 .hud-top{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
@@ -257,7 +258,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 22:15</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 22:20</p>
     </div>
   </section>
 
@@ -986,7 +987,7 @@ function syncAvatars(){
   /* tags */
   const want=new Map();
   for(const [k,av] of avatars){ want.set('a:'+k,{text:av.userData.nick||'旅人',cls:'tag'+(av.userData.isMe?' me':'')+(av.userData.paused?' paused':''),obj:av,dy:2.6}); want.set('e:'+k,{text:'',cls:'bubble off',obj:av,dy:3.05,bubble:true}); }
-  if(R.stackTag) want.set('stack',{text:R.stackTag,cls:'tag stack',pos:R.stackTagPos,parent:R.stackParent});
+  if(R.stackTag&&W>480) want.set('stack',{text:R.stackTag,cls:'tag stack',pos:R.stackTagPos,parent:R.stackParent});
   for(const [k,av] of staffAvs){ want.set('t:'+k,{text:R.staffName+'・'+(av.userData.nick||'站長'),cls:'tag staff',obj:av,dy:2.25}); want.set('b:'+k,{text:'',cls:'bubble',obj:av,dy:2.75,bubble:true}); }
   R.seats.forEach((s,i)=>{ if(!s.taken) want.set('s:'+i,{text:'空位',cls:'tag empty',pos:new THREE.Vector3(s.x,1.5,s.z),parent:s.parent}); });
   for(const [k,el] of tagEls){ if(!want.has(k)){ el.remove(); tagEls.delete(k); } }
@@ -1120,7 +1121,7 @@ function updateStacks(){
     if(i%3===0) add(new THREE.BoxGeometry(0.07,0.005,0.07),M(NC[i%NC.length],0.9),0.2,y+h+0.003,0.12,rack,false); y+=h+0.004; }
   const pile=new THREE.Group(); pile.position.copy(R.bookPos); g.add(pile); const nb=Math.min(books,14); let by=0;
   for(let i=0;i<nb;i++){ const h=0.08+((i*17)%5)*0.01; const b=add(new THREE.BoxGeometry(0.5,h,0.36),M(BOOKC[i%BOOKC.length],0.75),0,by+h/2,0,pile); b.rotation.y=((i*31)%9-4)*0.07; by+=h; }
-  R.stackTag=(papers||books)?('本月共讀 '+papers+' 篇・'+books+' 本'):'文件架：還沒有人登記';
+  R.stackTag=(papers||books)?('本月 '+papers+' 篇・'+books+' 本'):'';
   R.stackTagPos=new THREE.Vector3(R.stackPos.x,y+0.35,R.stackPos.z); syncAvatars();
 }
 
