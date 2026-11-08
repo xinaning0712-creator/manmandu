@@ -158,3 +158,17 @@ begin
   if not public.is_admin() then raise exception 'not admin'; end if;
   update public.settings set notice = nullif(left(trim(coalesce(p_text,'')), 120), ''), notice_at = now() where id = 1;
 end $$;
+
+-- 環境音（2026-11 新增）：rain / fire / train / page
+alter table public.settings add column if not exists ambience jsonb not null default '{}'::jsonb;
+create or replace function public.admin_set_ambience(p_key text, p_path text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'not admin'; end if;
+  if p_key not in ('rain','fire','train','page') then raise exception 'bad key'; end if;
+  if p_path is null or p_path = '' then
+    update public.settings set ambience = ambience - p_key where id = 1;
+  else
+    update public.settings set ambience = jsonb_set(ambience, array[p_key], to_jsonb(left(p_path, 200))) where id = 1;
+  end if;
+end $$;

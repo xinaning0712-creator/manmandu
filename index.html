@@ -257,7 +257,7 @@ input[type=range]{accent-color:var(--rose)}
         </section>
       </div>
       <p class="note-line" id="syncLine">連線中…</p>
-      <p class="note-line" style="opacity:.6">版本 11/08 22:00</p>
+      <p class="note-line" style="opacity:.6">版本 11/08 22:15</p>
     </div>
   </section>
 
@@ -384,6 +384,11 @@ input[type=range]{accent-color:var(--rose)}
       <div><label class="lbl2" for="goalIn">每月共讀目標（小時）</label>
         <div style="display:flex;gap:8px"><input type="number" id="goalIn" min="3" max="500" step="1" value="30"><button class="btn" id="goalSave" type="button">儲存</button></div>
         <div class="err" id="goalErr"></div></div>
+      <div><span class="lbl2">環境音（真實錄音，30 秒到 2 分鐘、可循環的檔案最好）</span>
+        <div id="ambRows" style="display:grid;gap:8px"></div>
+        <input type="file" id="ambFile" accept=".mp3,.m4a,.wav,.aac,.ogg,audio/*" hidden>
+        <p class="note-line">沒上傳的項目會用合成音代替。翻書聲請上傳單次翻頁的短音檔。</p>
+        <div id="ambMsg" class="note-line"></div></div>
       <div><span class="lbl2">背景音樂</span>
         <p style="margin:0 0 8px" id="musicNow">目前沒有背景音樂</p>
         <div class="btnrow"><label class="btn" for="musicFile" style="display:inline-block">上傳音樂檔</label><button class="btn" id="musicDel" type="button" hidden>移除音樂</button></div>
@@ -1348,18 +1353,50 @@ const audio=(()=>{
       w(0,'RIFF'); v.setUint32(4,36+n*2,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,sr,true); v.setUint32(28,sr*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,n*2,true);
       const el=new Audio(URL.createObjectURL(new Blob([b],{type:'audio/wav'}))); el.loop=true; el.setAttribute('playsinline',''); el.play().catch(()=>{}); window.__mmdSilent=el; }catch(e){}
   }
-  function init(){ if(ctx){ if(ctx.state==='suspended') ctx.resume(); return; } unlockIOS(); const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; ctx=new AC(); master=ctx.createGain(); master.gain.value=vN/100*0.9; master.connect(ctx.destination); noiseBuf=noiseBuffer();
+  function init(){ if(ctx){ if(ctx.state==='suspended') ctx.resume(); return; } setTimeout(()=>ensureReal(),0); unlockIOS(); const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; ctx=new AC(); master=ctx.createGain(); master.gain.value=vN/100*0.9; master.connect(ctx.destination); noiseBuf=noiseBuffer();
     bed('fire','bandpass',520,0.6,0.08); bed('rain','bandpass',1600,0.45,0.42); bed('rain2','highpass',4500,0.4,0.06); bed('rumble','lowpass',160,0.7,0.5); bed('hiss','highpass',3000,0.5,0.015); }
   function scene(){ if(!ctx) return {}; const p=currentPhase(); const rid=S.room;
     const rp=store.get('mmd.rain','auto'); const autoRain=rid==='cottage'&&(p==='dusk'||p==='night'); const rain=rp==='on'||(rp==='auto'&&autoRain);
     if(rid==='cottage') return {fire:1,rain:rain?1:0,drops:rain,birds:!rain&&(p==='morning'||p==='afternoon'),crackle:true};
     if(rid==='train') return {rumble:1,hiss:1,clack:true,rain:rain?1:0,drops:rain,birds:!rain&&p==='morning'};
     return {}; }
+  const real={};
+  function seamless(buf){
+    const X=Math.min(Math.floor(buf.sampleRate*1.5),Math.floor(buf.length/4)); if(X<100) return buf;
+    const L=buf.length-X; const out=ctx.createBuffer(buf.numberOfChannels,L,buf.sampleRate);
+    for(let c=0;c<buf.numberOfChannels;c++){ const src=buf.getChannelData(c), dst=out.getChannelData(c); dst.set(src.subarray(0,L));
+      for(let i=0;i<X;i++){ const k=i/X; dst[i]=src[i]*Math.sqrt(k)+src[L+i]*Math.sqrt(1-k); } }
+    return out;
+  }
+  async function ensureReal(){
+    if(!ctx) return; const amb=S.settings.ambUrls||{};
+    for(const key of ['rain','fire','train','page']){
+      const url=amb[key]||null; const cur=real[key];
+      if(!url){ if(cur){ try{ cur.src&&cur.src.stop(); }catch(e){} delete real[key]; } continue; }
+      if(cur&&cur.url===url) continue;
+      if(cur){ try{ cur.src&&cur.src.stop(); }catch(e){} }
+      real[key]={url,loading:true};
+      try{ const ab=await (await fetch(url)).arrayBuffer(); const dec=await new Promise((res,rej)=>ctx.decodeAudioData(ab,res,rej));
+        const g=ctx.createGain(); g.gain.value=0; g.connect(master);
+        real[key]={url,buf:key==='page'?dec:seamless(dec),g,src:null};
+      }catch(e){ delete real[key]; }
+    }
+    update();
+  }
+  function realLoop(key,want){
+    const r=real[key]; if(!r||!r.buf) return false;
+    if(want&&!r.src){ const s=ctx.createBufferSource(); s.buffer=r.buf; s.loop=true; s.connect(r.g); s.start(0,Math.random()*r.buf.duration); r.src=s; }
+    r.g.gain.setTargetAtTime(want?0.85:0,ctx.currentTime,0.8);
+    return true;
+  }
   function update(){
     timers.forEach(clearInterval); timers=[];
-    if(!on||!ctx){ if(musicEl) musicEl.pause(); Object.values(layers).forEach(l=>l.g.gain.value=0); return; }
+    if(!on||!ctx){ if(musicEl) musicEl.pause(); Object.values(layers).forEach(l=>l.g.gain.value=0); Object.values(real).forEach(r=>{ if(r.g) r.g.gain.value=0; }); return; }
     if(ctx.state==='suspended') ctx.resume();
     const sc=scene(); const now=ctx.currentTime;
+    if(realLoop('rain',!!sc.rain)){ sc.rain=0; sc.drops=false; }
+    if(realLoop('fire',!!sc.fire)){ sc.fire=0; sc.crackle=false; }
+    if(realLoop('train',!!sc.rumble)){ sc.rumble=0; sc.hiss=0; sc.clack=false; }
     for(const [k,l] of Object.entries(layers)){ const want=k==='rain2'?sc.rain:sc[k]; l.g.gain.setTargetAtTime(want?l.target:0,now,0.8); }
     if(sc.crackle) timers.push(setInterval(()=>{ if(Math.random()<0.35) burst(1800+Math.random()*2500,0.04+Math.random()*0.05,0.12+Math.random()*0.15,'highpass'); },130));
     if(sc.drops){ timers.push(setInterval(()=>{ if(Math.random()<0.6) burst(2500+Math.random()*4000,0.015+Math.random()*0.025,0.07+Math.random()*0.1,'highpass'); },60)); timers.push(setInterval(()=>{ if(Math.random()<0.25) burst(700+Math.random()*500,0.06,0.06,'bandpass'); },400)); }
@@ -1379,6 +1416,7 @@ const audio=(()=>{
   let lastFlip=0;
   function flip(){
     if(!on||!ctx||!store.get('mmd.page',true)) return; const nowMs=performance.now(); if(nowMs-lastFlip<1100) return; lastFlip=nowMs;
+    const rp=real.page; if(rp&&rp.buf){ const s=ctx.createBufferSource(); s.buffer=rp.buf; const g=ctx.createGain(); const t=ctx.currentTime; const d=Math.min(rp.buf.duration,1.6); g.gain.setValueAtTime(0.7,t); g.gain.setTargetAtTime(0.0001,t+d-0.3,0.1); s.connect(g).connect(master); s.start(t); s.stop(t+d+0.2); return; }
     const t=ctx.currentTime; [[0,0.16,0.26],[0.13,0.09,0.18]].forEach(([d,vol,dur])=>{
       const s=ctx.createBufferSource(); s.buffer=noiseBuf; const f=ctx.createBiquadFilter(); f.type='bandpass'; f.Q.value=0.9;
       f.frequency.setValueAtTime(1800,t+d); f.frequency.exponentialRampToValueAtTime(5200,t+d+dur*0.6); f.frequency.exponentialRampToValueAtTime(2600,t+d+dur);
@@ -1387,7 +1425,7 @@ const audio=(()=>{
   }
   function setVN(v){ vN=v; store.set('mmd.vN',v); if(master) master.gain.value=v/100*0.9; }
   function setVM(v){ vM=v; store.set('mmd.vM',v); if(musicEl) musicEl.volume=v/100; }
-  return { update, setOn, setVN, setVM, flip, wake, get on(){return on;}, get vN(){return vN;}, get vM(){return vM;}, music };
+  return { update, setOn, setVN, setVM, flip, wake, ensureReal, get on(){return on;}, get vN(){return vN;}, get vM(){return vM;}, music };
 })();
 function renderSound(){ const rp=store.get('mmd.rain','auto'); $('rainToggle').textContent={auto:'自動（夜晚的小屋下雨）',on:'一直下雨',off:'不要雨聲'}[rp]; $('pageToggle').textContent=store.get('mmd.page',true)?'開啟':'關閉'; $('sndToggle').textContent=audio.on?'關閉':'開啟'; $('btnSound').classList.toggle('on',audio.on); $('volNoise').value=audio.vN; $('oNoise').textContent=audio.vN; $('volMusic').value=audio.vM; $('oMusic').textContent=audio.vM;
   $('sndInfo').textContent=S.settings.musicUrl?('白噪音會跟著房間和時段變化。背景音樂：'+(S.settings.musicName||'站長上傳的音樂')):'白噪音會跟著房間和時段變化。站長還沒放背景音樂。'; }
@@ -1486,6 +1524,25 @@ $('goalSave').onclick=async()=>{
   if(error){ $('goalErr').textContent='沒存成功，請重新登入站長再試'; return; }
   toast('每月目標改成 '+v+' 小時'); loadSettings();
 };
+const AMB_KEYS=[['rain','雨聲'],['fire','暖爐'],['train','列車行駛'],['page','翻書聲']]; let ambTarget=null;
+function renderAdminAmb(){ const box=$('ambRows'); if(!box) return; box.innerHTML=''; const amb=S.settings.amb||{};
+  AMB_KEYS.forEach(([k,l])=>{ const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+    const name=document.createElement('span'); name.style.cssText='min-width:72px'; name.textContent=l; const st=document.createElement('span'); st.className='note-line'; st.style.flex='1'; st.textContent=amb[k]?'已上傳真實錄音':'合成音';
+    const up=document.createElement('button'); up.type='button'; up.className='btn'; up.textContent=amb[k]?'更換':'上傳'; up.onclick=()=>{ ambTarget=k; $('ambFile').click(); };
+    row.append(name,st,up);
+    if(amb[k]){ const del=document.createElement('button'); del.type='button'; del.className='btn'; del.textContent='移除'; del.onclick=()=>removeAmb(k); row.append(del); }
+    box.append(row); }); }
+async function removeAmb(k){ const old=(S.settings.amb||{})[k]; const {error}=await sb.rpc('admin_set_ambience',{p_key:k,p_path:''}); if(error){ $('ambMsg').textContent='移除失敗，請確認 Supabase 指令已經跑過'; return; } if(old) sb.storage.from('music').remove([old]).catch(()=>{}); $('ambMsg').textContent='已移除，改回合成音。'; loadSettings(); }
+$('ambFile').onchange=async e=>{
+  const f=e.target.files?.[0]; e.target.value=''; const k=ambTarget; if(!f||!k) return; const msg=$('ambMsg');
+  if(!sb||!S.isOwner){ msg.textContent='請先登入站長。'; return; }
+  if(f.size>20*1024*1024){ msg.textContent='檔案超過 20 MB，請剪短一點。'; return; }
+  const ext=(f.name.split('.').pop()||'').toLowerCase(); const type=AUDIO_TYPES[ext]; if(!type){ msg.textContent='請上傳 mp3、m4a 或 wav。'; return; }
+  msg.textContent='上傳中…'; const path='amb/'+k+'-'+Date.now()+'.'+ext; const old=(S.settings.amb||{})[k];
+  const up=await sb.storage.from('music').upload(path,f,{contentType:type,upsert:false}); if(up.error){ msg.textContent='上傳失敗：'+(up.error.message||'請稍後再試'); return; }
+  const {error}=await sb.rpc('admin_set_ambience',{p_key:k,p_path:path}); if(error){ msg.textContent='檔案上傳了，但設定沒存成功，請確認 Supabase 指令已經跑過。'; return; }
+  if(old) sb.storage.from('music').remove([old]).catch(()=>{}); msg.textContent='上傳完成！大家重新進房就會聽到真實錄音。'; loadSettings();
+};
 const AUDIO_TYPES={mp3:'audio/mpeg',m4a:'audio/mp4',mp4:'audio/mp4',aac:'audio/aac',wav:'audio/wav',ogg:'audio/ogg',webm:'audio/webm'};
 $('musicFile').onchange=async e=>{
   const f=e.target.files?.[0]; e.target.value=''; if(!f) return; const msg=$('musicMsg');
@@ -1575,10 +1632,12 @@ async function loadStats(){
 }
 async function loadSettings(){
   if(!sb) return;
-  let {data,error}=await sb.from('settings').select('goal_hours,music_path,music_name,notice,notice_at').eq('id',1).maybeSingle();
+  let {data,error}=await sb.from('settings').select('goal_hours,music_path,music_name,notice,notice_at,ambience').eq('id',1).maybeSingle();
   if(error){ ({data}=await sb.from('settings').select('goal_hours,music_path,music_name').eq('id',1).maybeSingle()); }
   const d=data||{}; const url=d.music_path?sb.storage.from('music').getPublicUrl(d.music_path).data.publicUrl:null;
-  S.settings={goalHours:+d.goal_hours||30,musicPath:d.music_path||null,musicName:d.music_name||'',musicUrl:url,notice:d.notice||'',noticeAt:d.notice_at||null};
+  const amb=d.ambience||{}; const ambUrls={}; for(const k of Object.keys(amb)) if(amb[k]) ambUrls[k]=sb.storage.from('music').getPublicUrl(amb[k]).data.publicUrl;
+  S.settings={goalHours:+d.goal_hours||30,musicPath:d.music_path||null,musicName:d.music_name||'',musicUrl:url,notice:d.notice||'',noticeAt:d.notice_at||null,amb,ambUrls};
+  renderAdminAmb(); audio.ensureReal();
   renderNotice();
   renderLobby(); applyTier(); renderAdminMusic(); audio.music();
 }
